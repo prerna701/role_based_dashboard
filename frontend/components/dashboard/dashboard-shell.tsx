@@ -5,10 +5,8 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowRight,
   BookOpen,
-  Download,
   GraduationCap,
   Lock,
-  RefreshCw,
   Search,
   ShieldCheck,
   Star,
@@ -70,11 +68,9 @@ export function DashboardShell() {
   const [selectedRegion, setSelectedRegion] = useState('all');
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [authMessage, setAuthMessage] = useState('Checking authenticated session...');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [refreshing, setRefreshing] = useState(false);
 
   const role = roles[roleKey];
   const scopedRegion = resolveRegionForRole(roleKey, selectedRegion);
@@ -106,7 +102,6 @@ export function DashboardShell() {
     setRoleKey(session.roleKey);
     setSelectedRegion(resolveRegionForRole(session.roleKey, 'all'));
     setToken(session.token);
-    setAuthMessage(`JWT role connected: ${roles[session.roleKey].label}`);
   }, [router]);
 
   const filteredCourses = useMemo(() => {
@@ -127,19 +122,6 @@ export function DashboardShell() {
     if (canAccessRegion(roleKey, regionKey)) {
       setSelectedRegion(regionKey);
     }
-  }
-
-  function refreshDashboard() {
-    setRefreshing(true);
-    if (!token) {
-      setRefreshing(false);
-      return;
-    }
-
-    loadDashboardData({ token, region: scopedRegion })
-      .then((data) => setDashboardData(data))
-      .catch((error: Error) => setErrorMessage(error.message))
-      .finally(() => setRefreshing(false));
   }
 
   if (!dashboardData) {
@@ -173,30 +155,6 @@ export function DashboardShell() {
       <Sidebar />
 
       <main className="dashboard-main">
-        <section className="scope-toolbar">
-          <div className="persona">
-            <span className="avatar">{role.initials}</span>
-            <div>
-              <div className="persona-row">
-                <strong>{role.name}</strong>
-                <span className="role-chip">{role.label}</span>
-              </div>
-              <p>{role.scopeLabel} fiscal telemetry</p>
-            </div>
-          </div>
-          <div className="toolbar-actions">
-            <span className="api-pill">Live API</span>
-            <span className="api-pill">{authMessage}</span>
-            <button className="icon-button" onClick={refreshDashboard} title="Refresh dashboard">
-              <RefreshCw size={18} className={refreshing ? 'spin' : ''} />
-            </button>
-            <button className="primary-action">
-              <Download size={16} />
-              Export Ledger
-            </button>
-          </div>
-        </section>
-
         <section className="scope-banner">
           <div className="scope-copy">
             {isRegionalRole ? <Lock size={20} /> : <ShieldCheck size={20} />}
