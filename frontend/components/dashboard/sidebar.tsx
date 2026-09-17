@@ -1,15 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Globe2,
   GraduationCap,
   LayoutDashboard,
+  LogOut,
   ShieldCheck,
   TrendingUp,
   Users,
 } from 'lucide-react';
+import { logoutApi } from '@/lib/analytics-api';
 
 const links = [
   { label: 'Overview Dashboard', href: '/', icon: LayoutDashboard },
@@ -21,6 +23,12 @@ const links = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logoutApi();
+    router.push('/login');
+  };
 
   return (
     <aside className="sidebar">
@@ -40,6 +48,10 @@ export function Sidebar() {
               {label}
             </Link>
           ))}
+          <button type="button" onClick={handleLogout}>
+            <LogOut size={19} />
+            Logout
+          </button>
         </nav>
       </div>
       <div className="node-card">
