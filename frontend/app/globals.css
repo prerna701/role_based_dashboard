@@ -1047,6 +1047,34 @@ button:disabled {
   background: var(--success);
 }
 
+.scope-proof-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.scope-proof-grid article {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-low);
+}
+
+.scope-proof-grid span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.scope-proof-grid strong {
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1.1;
+}
+
 .risk-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1086,6 +1114,7 @@ button:disabled {
   }
 
   .category-strip,
+  .scope-proof-grid,
   .risk-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1114,6 +1143,7 @@ button:disabled {
 
   .metric-grid,
   .category-strip,
+  .scope-proof-grid,
   .risk-list {
     grid-template-columns: 1fr;
   }

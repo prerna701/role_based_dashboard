@@ -13,10 +13,10 @@ import {
 
 const links = [
   { label: 'Overview Dashboard', href: '/', icon: LayoutDashboard },
-  { label: 'Course Catalog', href: '#', icon: GraduationCap },
+  { label: 'Course Catalog', href: '/courses', icon: GraduationCap },
   { label: 'Student Roster', href: '/students', icon: Users },
-  { label: 'Revenue Reports', href: '#', icon: TrendingUp },
-  { label: 'Role Permissions', href: '#', icon: ShieldCheck },
+  { label: 'Revenue Reports', href: '/revenue', icon: TrendingUp },
+  { label: 'Role Permissions', href: '/permissions', icon: ShieldCheck },
 ];
 
 export function Sidebar() {

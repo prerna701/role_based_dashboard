@@ -194,6 +194,19 @@ function colorizeCategoryRevenue(
   }));
 }
 
+function mapPopularCourses(courses: PopularCoursesPayload[]): PopularCourse[] {
+  return courses.map((course, index) => ({
+    rank: index + 1,
+    title: course.title,
+    code: course.courseId,
+    category: course.category,
+    enrollments: course.enrollments,
+    rating: course.averageRating,
+    fees: course.totalFees,
+    completionRate: course.completionRate,
+  }));
+}
+
 type JwtPayload = {
   role?: {
     id?: number | string;
@@ -347,16 +360,7 @@ export async function loadDashboardData(options: RequestOptions): Promise<Dashbo
       enrollments: item.enrollments,
       revenue: item.revenue,
     })),
-    popularCourses: courses.map((course, index) => ({
-      rank: index + 1,
-      title: course.title,
-      code: course.courseId,
-      category: course.category,
-      enrollments: course.enrollments,
-      rating: course.averageRating,
-      fees: course.totalFees,
-      completionRate: course.completionRate,
-    })),
+    popularCourses: mapPopularCourses(courses),
     students,
     source: 'api',
   };
@@ -368,6 +372,40 @@ export async function loadRevenueByCategory(
   const payload = await fetchJson('/analytics/revenue-by-category', options);
 
   return colorizeCategoryRevenue(unwrapList<CategoryRevenuePayload>(payload));
+}
+
+export async function loadOverview(
+  options: RequestOptions,
+): Promise<OverviewPayload> {
+  const payload = await fetchJson('/analytics/overview', options);
+  const overview = unwrapData<OverviewPayload>(payload);
+
+  if (!overview) {
+    throw new Error('The analytics overview response was invalid.');
+  }
+
+  return overview;
+}
+
+export async function loadPopularCourses(
+  options: RequestOptions,
+): Promise<PopularCourse[]> {
+  const payload = await fetchJson('/analytics/popular-courses', options);
+
+  return mapPopularCourses(unwrapList<PopularCoursesPayload>(payload));
+}
+
+export async function loadMonthlyRevenue(
+  options: RequestOptions,
+): Promise<MonthlyRevenue[]> {
+  const payload = await fetchJson('/analytics/monthly-revenue', options);
+  const monthly = unwrapList<MonthlyRevenuePayload>(payload);
+
+  return monthly.map((item) => ({
+    month: item.month,
+    enrollments: item.enrollments,
+    revenue: item.revenue,
+  }));
 }
 
 export async function loadStudents(options: RequestOptions): Promise<StudentsPage> {
