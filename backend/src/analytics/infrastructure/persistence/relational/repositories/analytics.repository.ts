@@ -76,7 +76,6 @@ type StudentRow = {
   studentId: string;
   studentExternalId: string;
   studentName: string;
-  region: string;
   joinedOn: string;
   courseId: string;
   courseTitle: string;
@@ -326,7 +325,6 @@ export class AnalyticsRelationalRepository implements AnalyticsRepository {
       .select('student.id', 'studentId')
       .addSelect('student.externalId', 'studentExternalId')
       .addSelect('student.name', 'studentName')
-      .addSelect('region.name', 'region')
       .addSelect('student.joinedOn', 'joinedOn')
       .addSelect('course.externalId', 'courseId')
       .addSelect('course.title', 'courseTitle')
@@ -352,7 +350,6 @@ export class AnalyticsRelationalRepository implements AnalyticsRepository {
       const student = students.get(row.studentId) ?? {
         studentId: row.studentExternalId,
         name: row.studentName,
-        region: row.region,
         joinedOn: row.joinedOn,
         courses: [],
         completion: { completed: 0, inProgress: 0, dropped: 0 },

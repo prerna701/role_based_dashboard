@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BookOpen, Search, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/dashboard/empty-state';
 import { LoadingState } from '@/components/dashboard/loading-state';
@@ -84,9 +85,9 @@ export default function StudentsPage() {
       <main className="dashboard-main students-page">
         <div className="page-heading">
           <div>
-            <a className="back-link" href="/">
+            <Button className="back-link" href="/" variant="ghost">
               <ArrowLeft size={16} /> Back to dashboard
-            </a>
+            </Button>
             <p className="card-eyebrow">Student intelligence</p>
             <h1>Students and Enrollments</h1>
             <p className="page-description">
@@ -114,10 +115,26 @@ export default function StudentsPage() {
         </div>
 
         <section className="metric-grid student-metrics">
-          <Card className="metric-card"><div className="metric-top"><span>Students in scope</span><Users size={20} /></div><div className="metric-value"><strong>{studentsPage?.meta.total ?? 0}</strong></div><small>Unique students</small></Card>
-          <Card className="metric-card"><div className="metric-top"><span>Completed</span><BookOpen size={20} /></div><div className="metric-value"><strong>{completionTotals.completed}</strong></div><small>Course enrollments</small></Card>
-          <Card className="metric-card"><div className="metric-top"><span>In progress</span><BookOpen size={20} /></div><div className="metric-value"><strong>{completionTotals.inProgress}</strong></div><small>Active enrollments</small></Card>
-          <Card className="metric-card"><div className="metric-top"><span>Dropped</span><BookOpen size={20} /></div><div className="metric-value"><strong>{completionTotals.dropped}</strong></div><small>Needs attention</small></Card>
+          <Card className="metric-card">
+            <div className="metric-top"><span>Students in scope</span><Users size={20} /></div>
+            <div className="metric-value"><strong>{studentsPage?.meta.total ?? 0}</strong></div>
+            <small>Unique students</small>
+          </Card>
+          <Card className="metric-card">
+            <div className="metric-top"><span>Completed</span><BookOpen size={20} /></div>
+            <div className="metric-value"><strong>{completionTotals.completed}</strong></div>
+            <small>Course enrollments</small>
+          </Card>
+          <Card className="metric-card">
+            <div className="metric-top"><span>In progress</span><BookOpen size={20} /></div>
+            <div className="metric-value"><strong>{completionTotals.inProgress}</strong></div>
+            <small>Active enrollments</small>
+          </Card>
+          <Card className="metric-card">
+            <div className="metric-top"><span>Dropped</span><BookOpen size={20} /></div>
+            <div className="metric-value"><strong>{completionTotals.dropped}</strong></div>
+            <small>Needs attention</small>
+          </Card>
         </section>
 
         <Card className="completion-card" title="Completion status" eyebrow="Current page enrollment distribution">
@@ -139,15 +156,50 @@ export default function StudentsPage() {
             <div className="student-list">
               {studentsPage?.data.map((student) => (
                 <article className="student-card" key={student.studentId}>
-                  <div className="student-card-heading"><div><h2>{student.name}</h2><span>{student.studentId} · {student.region} · Joined {student.joinedOn}</span></div><strong>{student.courses.length} courses</strong></div>
+                  <div className="student-card-heading">
+                    <div>
+                      <h2>{student.name}</h2>
+                      <span>{student.studentId} | Joined {student.joinedOn}</span>
+                    </div>
+                    <div className="student-card-summary">
+                      <strong>{student.courses.length} courses</strong>
+                      <span>{student.completion.completed} completed</span>
+                    </div>
+                  </div>
                   <div className="course-detail-list">
-                    {student.courses.map((course) => <div className="course-detail" key={`${student.studentId}-${course.courseId}`}><div><strong>{course.title}</strong><span>{course.category} · {course.level} · {course.instructor}</span></div><div className="course-detail-meta"><span>{course.enrolledOn}</span><span className={`status-pill status-${course.completionStatus}`}>{statusLabels[course.completionStatus as keyof typeof statusLabels] ?? course.completionStatus}</span><span>{course.grade ?? 'No grade'}</span></div></div>)}
+                    {student.courses.map((course) => (
+                      <div className="course-detail" key={`${student.studentId}-${course.courseId}`}>
+                        <div>
+                          <strong>{course.title}</strong>
+                          <span>
+                            {course.category} | {course.level} | {course.instructor} | {course.durationWeeks} weeks
+                          </span>
+                        </div>
+                        <div className="course-detail-meta">
+                          <span>Enrolled {course.enrolledOn}</span>
+                          <span className={`status-pill status-${course.completionStatus}`}>
+                            {statusLabels[course.completionStatus as keyof typeof statusLabels] ?? course.completionStatus}
+                          </span>
+                          <span>{course.grade ?? 'No grade'}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </article>
               ))}
             </div>
           )}
-          {studentsPage && studentsPage.meta.totalPages > 1 && <div className="pagination"><button disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>Previous</button><span>Page {page} of {studentsPage.meta.totalPages}</span><button disabled={page >= studentsPage.meta.totalPages} onClick={() => setPage((current) => current + 1)}>Next</button></div>}
+          {studentsPage && studentsPage.meta.totalPages > 1 && (
+            <div className="pagination">
+              <Button disabled={page <= 1} onClick={() => setPage((current) => current - 1)} variant="secondary">
+                Previous
+              </Button>
+              <span>Page {page} of {studentsPage.meta.totalPages}</span>
+              <Button disabled={page >= studentsPage.meta.totalPages} onClick={() => setPage((current) => current + 1)} variant="secondary">
+                Next
+              </Button>
+            </div>
+          )}
         </Card>
       </main>
     </div>

@@ -104,7 +104,6 @@ export type StudentEnrollmentSummary = {
 export type StudentDetails = {
   studentId: string;
   name: string;
-  region: string;
   joinedOn: string;
   courses: StudentCourse[];
   completion: StudentEnrollmentSummary;

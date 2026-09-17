@@ -26,6 +26,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
   loadDashboardData,
@@ -403,14 +404,9 @@ export function DashboardShell() {
         </section>
 
         <Card
-          className="table-card"
+          className="table-card student-preview-card"
           title="Student Enrollment Snapshot"
           eyebrow="Live backend data"
-          action={
-            <a className="text-action" href="/students">
-              Read more <ArrowRight size={15} />
-            </a>
-          }
         >
           <div className="student-preview-list">
             {dashboardData.students.length === 0 ? (
@@ -418,9 +414,11 @@ export function DashboardShell() {
             ) : (
               dashboardData.students.map((student) => (
                 <article key={student.studentId} className="student-preview-row">
-                  <div>
+                  <div className="student-preview-identity">
                     <strong>{student.name}</strong>
-                    <span>{student.region} · {student.courses.length} courses</span>
+                    <span>
+                      {student.studentId} | {student.courses.length} courses | Joined {student.joinedOn}
+                    </span>
                   </div>
                   <div className="completion-summary">
                     <span className="status-completed">{student.completion.completed} done</span>
@@ -430,6 +428,11 @@ export function DashboardShell() {
                 </article>
               ))
             )}
+          </div>
+          <div className="card-footer-action">
+            <Button href="/students" variant="secondary">
+              Read more <ArrowRight size={15} />
+            </Button>
           </div>
         </Card>
 
@@ -526,4 +529,3 @@ export function DashboardShell() {
     </div>
   );
 }
-

@@ -118,6 +118,16 @@ GET /api/v1/analytics/monthly-revenue?page=1&limit=10&region=North
 Authorization: Bearer <token>
 ```
 
+```http
+GET /api/v1/analytics/students?page=1&limit=10&search=Asha&region=North
+Authorization: Bearer <token>
+```
+
+The students endpoint powers the `/students` frontend page. It returns each
+student's public student ID, name, join date, enrolled courses, instructors,
+fees, grades, ratings, and completion summary. Region is used only for backend
+scope filtering and is intentionally not exposed in student detail rows.
+
 The frontend dashboard signs in with the seeded role accounts from the role
 switcher and calls these analytics endpoints with the returned JWT, so browser
 Network tab inspection shows real backend traffic.
@@ -187,6 +197,15 @@ pagination. `AnalyticsService` resolves the authenticated user's region scope,
 validates requested regions, and composes responses; it does not access the
 database directly or use `DataSource.query`.
 
+Pagination follows the same boundary:
+
+- `PaginationQueryDto` validates `page` and `limit` at the HTTP boundary. The
+  service calculates the offset and builds the API pagination metadata.
+- The repository applies `limit` and `offset` to its QueryBuilder and returns
+  the current page together with the total number of matching groups.
+- The repository does not know about HTTP responses, users, or API metadata.
+- The service does not build database queries or calculate aggregate totals.
+
 ## API Response Format
 
 Successful responses use a common envelope:
@@ -207,6 +226,18 @@ Errors use the same top-level fields with `success: false`, `data: null`, and an
 Validation errors return `422`, authentication and authorization errors return
 the appropriate `401` or `403` status, and unexpected errors return a generic
 `500` message without exposing internal exception details.
+
+## Frontend Data Flow
+
+`frontend/lib/analytics-api.ts` is the frontend data-access boundary. It is the
+only source module that calls the backend, stores the login token, validates and
+unwraps API responses, and maps backend fields into the dashboard data shape.
+The dashboard renders no hardcoded analytics data: it shows a loading or error
+state until the login and analytics requests succeed. `DashboardShell` owns UI
+state such as the selected role, region, search, and filters; it consumes the
+normalized `DashboardData` object and does not call `fetch` directly.
+Presentational components render the data they receive and do not know the
+backend response format.
 
 ## Tests
 

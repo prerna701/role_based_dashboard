@@ -18,6 +18,7 @@ describe('AnalyticsService', () => {
     getPopularCourses: jest.fn(),
     getDropOffByCourse: jest.fn(),
     getMonthlyRevenue: jest.fn(),
+    getStudents: jest.fn(),
   };
   const regionScopeService = {
     resolveForUserId: jest.fn(),
@@ -311,6 +312,86 @@ describe('AnalyticsService', () => {
         page: 1,
         limit: 10,
         total: 6,
+        totalPages: 1,
+      },
+    });
+  });
+
+  it('returns paginated student details without exposing region fields', async () => {
+    regionScopeService.resolveForUserId.mockResolvedValue({
+      user: { id: 2 },
+      regionCode: 'North',
+    });
+    analyticsRepository.assertRegionExists.mockResolvedValue(true);
+    analyticsRepository.getStudents.mockResolvedValue({
+      data: [
+        {
+          studentId: 'STU-001',
+          name: 'Asha Mehra',
+          joinedOn: '2024-07-01',
+          courses: [
+            {
+              courseId: 'CRS-DATA-801',
+              title: 'Advanced Data Pipelines',
+              category: 'Data & Analytics',
+              level: 'Advanced',
+              instructor: 'Riya Shah',
+              durationWeeks: 12,
+              enrolledOn: '2024-08-01',
+              completionStatus: 'completed',
+              grade: 'A',
+              rating: 4.6,
+              feePaid: 15000,
+            },
+          ],
+          completion: { completed: 1, inProgress: 0, dropped: 0 },
+        },
+      ],
+      total: 1,
+    });
+
+    const result = await service.getStudents(2, {
+      region: 'North',
+      page: 1,
+      limit: 10,
+      search: 'Asha',
+    });
+
+    expect(analyticsRepository.getStudents).toHaveBeenCalledWith(
+      { regionCode: 'North' },
+      { page: 1, limit: 10, offset: 0 },
+      'Asha',
+    );
+    expect(result.data[0]).not.toHaveProperty('region');
+    expect(result).toEqual({
+      data: [
+        {
+          studentId: 'STU-001',
+          name: 'Asha Mehra',
+          joinedOn: '2024-07-01',
+          courses: [
+            {
+              courseId: 'CRS-DATA-801',
+              title: 'Advanced Data Pipelines',
+              category: 'Data & Analytics',
+              level: 'Advanced',
+              instructor: 'Riya Shah',
+              durationWeeks: 12,
+              enrolledOn: '2024-08-01',
+              completionStatus: 'completed',
+              grade: 'A',
+              rating: 4.6,
+              feePaid: 15000,
+            },
+          ],
+          completion: { completed: 1, inProgress: 0, dropped: 0 },
+        },
+      ],
+      meta: {
+        region: 'North',
+        page: 1,
+        limit: 10,
+        total: 1,
         totalPages: 1,
       },
     });

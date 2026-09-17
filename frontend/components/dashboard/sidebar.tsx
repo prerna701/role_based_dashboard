@@ -1,14 +1,27 @@
-import { Globe2, GraduationCap, LayoutDashboard, ShieldCheck, TrendingUp, Users } from 'lucide-react';
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import {
+  Globe2,
+  GraduationCap,
+  LayoutDashboard,
+  ShieldCheck,
+  TrendingUp,
+  Users,
+} from 'lucide-react';
 
 const links = [
-  ['Overview Dashboard', LayoutDashboard],
-  ['Course Catalog', GraduationCap],
-  ['Student Roster', Users],
-  ['Revenue Reports', TrendingUp],
-  ['Role Permissions', ShieldCheck],
-] as const;
+  { label: 'Overview Dashboard', href: '/', icon: LayoutDashboard },
+  { label: 'Course Catalog', href: '#', icon: GraduationCap },
+  { label: 'Student Roster', href: '/students', icon: Users },
+  { label: 'Revenue Reports', href: '#', icon: TrendingUp },
+  { label: 'Role Permissions', href: '#', icon: ShieldCheck },
+];
 
 export function Sidebar() {
+  const pathname = usePathname();
+
   return (
     <aside className="sidebar">
       <div>
@@ -17,15 +30,15 @@ export function Sidebar() {
           <strong>AY 2024-25 Q3</strong>
         </div>
         <nav>
-          {links.map(([label, Icon], index) => (
-            <a
+          {links.map(({ label, href, icon: Icon }) => (
+            <Link
               key={label}
-              className={index === 0 ? 'active' : ''}
-              href={label === 'Student Roster' ? '/students' : '#'}
+              className={href === pathname ? 'active' : ''}
+              href={href}
             >
               <Icon size={19} />
               {label}
-            </a>
+            </Link>
           ))}
         </nav>
       </div>

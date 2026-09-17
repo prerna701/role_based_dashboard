@@ -79,7 +79,6 @@ export type StudentCourse = {
 export type StudentDetails = {
   studentId: string;
   name: string;
-  region: string;
   joinedOn: string;
   courses: StudentCourse[];
   completion: {
