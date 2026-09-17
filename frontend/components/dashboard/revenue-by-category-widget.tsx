@@ -133,13 +133,14 @@ export function RevenueByCategoryWidget({
         <>
           <div className="chart-stage">
             <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={categoryRevenue} margin={{ top: 18, right: 12, left: 0, bottom: 8 }}>
+              <BarChart data={categoryRevenue} margin={{ top: 18, right: 12, left: 10, bottom: 8 }}>
                 <CartesianGrid stroke="#d3e4fe" strokeDasharray="4 4" vertical={false} />
                 <XAxis dataKey="category" tickLine={false} axisLine={false} />
                 <YAxis
                   tickFormatter={(value) => `Rs ${Number(value) / 1000}k`}
                   tickLine={false}
                   axisLine={false}
+                  width={80}
                 />
                 <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                 <Bar dataKey="revenue" radius={[8, 8, 2, 2]}>

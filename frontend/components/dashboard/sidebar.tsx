@@ -48,16 +48,18 @@ export function Sidebar() {
               {label}
             </Link>
           ))}
-          <button type="button" onClick={handleLogout}>
-            <LogOut size={19} />
-            Logout
-          </button>
         </nav>
       </div>
-      <div className="node-card">
-        <Globe2 size={17} />
-        <span>Node: East-Cluster-09</span>
-        <b>ONLINE</b>
+      <div>
+        <div className="node-card">
+          <Globe2 size={17} />
+          <span>Node: East-Cluster-09</span>
+          <b>ONLINE</b>
+        </div>
+        <button type="button" onClick={handleLogout} className="logout-btn" style={{ marginTop: '16px' }}>
+          <LogOut size={19} />
+          Logout
+        </button>
       </div>
     </aside>
   );
