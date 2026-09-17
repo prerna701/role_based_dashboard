@@ -4,6 +4,11 @@ A full-stack role-based dashboard application built as part of the Neolytix Juni
 
 ---
 
+## Live URL
+
+- Frontend: `http://80.225.244.53:3000`
+- Backend API: `http://80.225.244.53:3001`
+
 ## Quick Start (Docker)
 
 The entire stack (PostgreSQL, Backend API, Frontend Next.js app) is fully dockerized and configured to automatically run database migrations and seed the data on startup.
