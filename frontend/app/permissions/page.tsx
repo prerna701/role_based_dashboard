@@ -1,68 +1,44 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Lock, ShieldCheck } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Lock, ShieldCheck } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/dashboard/empty-state';
 import { LoadingState } from '@/components/dashboard/loading-state';
+import { PageHeading } from '@/components/dashboard/page-heading';
 import { Sidebar } from '@/components/dashboard/sidebar';
-import { getStoredAuthSession, loadOverview, type AuthSession } from '@/lib/analytics-api';
-import { formatCurrency, roles, resolveRegionForRole } from '@/lib/dashboard-data';
+import { useAuthSession } from '@/components/providers/auth-session-provider';
+import { loadOverview } from '@/lib/analytics-api';
+import { formatCurrency } from '@/lib/dashboard-data';
 import type { DashboardData } from '@/types/analytics';
 
 export default function PermissionsPage() {
-  const router = useRouter();
-  const [session, setSession] = useState<AuthSession | null>(null);
+  const { token, role, roleKey, scopedRegion, isAuthenticated } = useAuthSession();
   const [overview, setOverview] = useState<DashboardData['summary'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const storedSession = getStoredAuthSession();
-
-    if (!storedSession) {
-      router.replace('/login');
-      return;
-    }
-
-    setSession(storedSession);
-  }, [router]);
-
-  useEffect(() => {
-    if (!session) return;
+    if (!token || !isAuthenticated) return;
 
     setLoading(true);
     setError(null);
 
-    loadOverview({
-      token: session.token,
-      region: resolveRegionForRole(session.roleKey, 'all'),
-    })
+    loadOverview({ token, region: scopedRegion })
       .then((data) => setOverview(data.summary))
       .catch((requestError: Error) => setError(requestError.message))
       .finally(() => setLoading(false));
-  }, [session]);
-
-  const role = session ? roles[session.roleKey] : roles.admin;
+  }, [isAuthenticated, scopedRegion, token]);
 
   return (
     <div className="dashboard-shell">
       <Sidebar />
       <main className="dashboard-main">
-        <div className="page-heading">
-          <div>
-            <Button className="back-link" href="/" variant="ghost">
-              <ArrowLeft size={16} /> Back to dashboard
-            </Button>
-            <p className="card-eyebrow">Role permissions</p>
-            <h1>Access Scope</h1>
-            <p className="page-description">
-              Your dashboard visibility is resolved from the authenticated JWT and backend user region.
-            </p>
-          </div>
-        </div>
+        <PageHeading
+          eyebrow="Role permissions"
+          title="Access Scope"
+          description="Your dashboard visibility is resolved from the authenticated JWT and backend user region."
+        />
 
         <section className="dashboard-grid">
           <Card title="Current Access" eyebrow="Authenticated role">
@@ -70,7 +46,7 @@ export default function PermissionsPage() {
               <ShieldCheck size={30} />
               <strong>{role.label}</strong>
               <p>
-                {session?.roleKey === 'admin'
+                {roleKey === 'admin'
                   ? 'Admin can view all regions and can filter reports by an individual region.'
                   : `This account is locked to ${role.scopeLabel}. Requests for other regions are rejected by the backend.`}
               </p>

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { AuthSessionProvider } from '@/components/providers/auth-session-provider';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -21,7 +22,7 @@ export default function RootLayout({
           FIRST VIEWPORT: fixed topbar/sidebar, sticky scope controls, metrics, primary chart.
           FORM: Operate dashboard based on supplied reference; finish checked by build and tests.
         </div>
-        {children}
+        <AuthSessionProvider>{children}</AuthSessionProvider>
       </body>
     </html>
   );

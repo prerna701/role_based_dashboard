@@ -1,13 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   ArrowRight,
   BookOpen,
   GraduationCap,
   Lock,
-  Search,
   ShieldCheck,
   Star,
   TrendingUp,
@@ -25,84 +23,48 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
-import {
-  getStoredAuthSession,
-  loadDashboardData,
-} from '@/lib/analytics-api';
+import { CourseTable } from '@/components/courses/course-table';
+import { useAuthSession } from '@/components/providers/auth-session-provider';
+import { loadDashboardData } from '@/lib/analytics-api';
 import {
   canAccessRegion,
   formatCurrency,
-  resolveRegionForRole,
-  roles,
 } from '@/lib/dashboard-data';
+import {
+  formatDisplayDate,
+  getCourseEndDate,
+} from '@/lib/formatters';
 import { EmptyState } from './empty-state';
 import { LoadingState } from './loading-state';
 import { MetricCard } from './metric-card';
 import { RevenueByCategoryWidget } from './revenue-by-category-widget';
 import { Sidebar } from './sidebar';
 import type { DashboardData } from '@/types/analytics';
-import type { RoleKey } from '@/types/dashboard';
-
-function formatDisplayDate(value?: string): string {
-  if (!value) {
-    return 'Not started';
-  }
-
-  return new Intl.DateTimeFormat('en', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(value));
-}
-
-function getCourseEndDate(enrolledOn: string, durationWeeks: number): Date {
-  const endDate = new Date(enrolledOn);
-  endDate.setDate(endDate.getDate() + durationWeeks * 7);
-
-  return endDate;
-}
 
 export function DashboardShell() {
-  const router = useRouter();
-  const [roleKey, setRoleKey] = useState<RoleKey>('admin');
-  const [selectedRegion, setSelectedRegion] = useState('all');
+  const {
+    token,
+    role,
+    roleKey,
+    scopedRegion,
+    changeRegion,
+    isAuthenticated,
+  } = useAuthSession();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
 
-  const role = roles[roleKey];
-  const scopedRegion = resolveRegionForRole(roleKey, selectedRegion);
   const isRegionalRole = roleKey !== 'admin';
 
   useEffect(() => {
-    setSelectedRegion((current) => resolveRegionForRole(roleKey, current));
-  }, [roleKey]);
-
-  useEffect(() => {
-    if (!token) {
-      return;
-    }
+    if (!token || !isAuthenticated) return;
 
     setErrorMessage(null);
     loadDashboardData({ token, region: scopedRegion })
       .then(setDashboardData)
       .catch((error: Error) => setErrorMessage(error.message));
-  }, [scopedRegion, token]);
-
-  useEffect(() => {
-    const session = getStoredAuthSession();
-
-    if (!session) {
-      router.replace('/login');
-      return;
-    }
-
-    setRoleKey(session.roleKey);
-    setSelectedRegion(resolveRegionForRole(session.roleKey, 'all'));
-    setToken(session.token);
-  }, [router]);
+  }, [isAuthenticated, scopedRegion, token]);
 
   const filteredCourses = useMemo(() => {
     return (dashboardData?.popularCourses ?? []).filter((course) => {
@@ -120,7 +82,7 @@ export function DashboardShell() {
 
   function handleRegionClick(regionKey: string) {
     if (canAccessRegion(roleKey, regionKey)) {
-      setSelectedRegion(regionKey);
+      changeRegion(regionKey);
     }
   }
 
@@ -391,74 +353,14 @@ export function DashboardShell() {
         </Card>
 
         <Card className="table-card" title="Most Popular Courses by Enrollment Count">
-          <div className="table-tools">
-            <label>
-              <Search size={17} />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Filter courses..."
-              />
-            </label>
-            <select
-              value={categoryFilter}
-              onChange={(event) => setCategoryFilter(event.target.value)}
-            >
-              <option value="all">All Categories</option>
-              {categoryOptions.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-          </div>
-          <DataTable>
-              <thead>
-                <tr>
-                  <th>Rank & Course Title</th>
-                  <th>Category</th>
-                  <th>Enrollments</th>
-                  <th>Avg Rating</th>
-                  <th>Total Fees</th>
-                  <th>Completion</th>
-                </tr>
-              </thead>
-              <tbody>
-                    {filteredCourses.length === 0 ? (
-                      <tr>
-                        <td colSpan={6}>
-                          <EmptyState message="No courses match the current filters." />
-                        </td>
-                      </tr>
-                    ) : filteredCourses.map((course) => (
-                  <tr key={course.code}>
-                    <td>
-                      <div className="course-title">
-                        <span>{course.rank}</span>
-                        <div>
-                          <strong>{course.title}</strong>
-                          <small>{course.code}</small>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span className="category-badge">{course.category}</span>
-                    </td>
-                    <td>{course.enrollments}</td>
-                    <td>{course.rating}</td>
-                    <td>{formatCurrency(course.fees)}</td>
-                    <td>
-                      <div className="completion-cell">
-                        <span>
-                          <i style={{ width: `${course.completionRate}%` }} />
-                        </span>
-                        <b>{course.completionRate}%</b>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-          </DataTable>
+          <CourseTable
+            courses={filteredCourses}
+            categories={categoryOptions}
+            query={query}
+            categoryFilter={categoryFilter}
+            onQueryChange={setQuery}
+            onCategoryFilterChange={setCategoryFilter}
+          />
         </Card>
 
         <Card className="table-card" title="Drop-off Risk Watchlist" eyebrow="Direct backend endpoint">

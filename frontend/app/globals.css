@@ -326,6 +326,7 @@ button:disabled {
 }
 
 .completion-bar-row .bar-completed { background: var(--success); }
+.completion-bar-row .bar-inProgress { background: var(--primary-2); }
 .completion-bar-row .bar-dropped { background: var(--danger); }
 
 .student-card {

@@ -33,6 +33,7 @@ const categoryColors: Record<string, string> = {
 const ACCESS_TOKEN_KEY = 'accessToken';
 const AUTH_USER_KEY = 'authUser';
 const AUTH_ROLE_KEY = 'authRoleKey';
+export const AUTH_SESSION_CHANGED_EVENT = 'auth-session-changed';
 
 function regionCodeFromKey(region?: string): string | undefined {
   if (!region || region === 'all') {
@@ -309,6 +310,7 @@ export function persistAuthSession(payload: LoginPayload): AuthSession {
     window.localStorage.setItem(ACCESS_TOKEN_KEY, session.token);
     window.localStorage.setItem(AUTH_ROLE_KEY, session.roleKey);
     window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(session.user));
+    window.dispatchEvent(new Event(AUTH_SESSION_CHANGED_EVENT));
   }
 
   return session;
@@ -454,4 +456,5 @@ export function clearStoredAuthSession() {
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);
   window.localStorage.removeItem(AUTH_ROLE_KEY);
   window.localStorage.removeItem(AUTH_USER_KEY);
+  window.dispatchEvent(new Event(AUTH_SESSION_CHANGED_EVENT));
 }
