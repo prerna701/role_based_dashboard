@@ -178,6 +178,36 @@ Important modeling choices:
 
 More detail is in `backend/src/database/DATABASE_PLAN.md`.
 
+## Analytics Persistence
+
+Analytics uses an `AnalyticsRepository` contract with a relational TypeORM
+implementation. The implementation injects repositories for the learning
+entities and uses TypeORM `QueryBuilder` for joins, aggregates, grouping, and
+pagination. `AnalyticsService` resolves the authenticated user's region scope,
+validates requested regions, and composes responses; it does not access the
+database directly or use `DataSource.query`.
+
+## API Response Format
+
+Successful responses use a common envelope:
+
+```json
+{
+  "success": true,
+  "message": "Request successful",
+  "data": {},
+  "meta": {},
+  "statusCode": 200,
+  "timestamp": "2026-09-17T12:00:00.000Z",
+  "path": "/api/v1/analytics/overview"
+}
+```
+
+Errors use the same top-level fields with `success: false`, `data: null`, and an `error` object.
+Validation errors return `422`, authentication and authorization errors return
+the appropriate `401` or `403` status, and unexpected errors return a generic
+`500` message without exposing internal exception details.
+
 ## Tests
 
 ```bash

@@ -1,45 +1,17 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { RegionScopeService } from '../common/scope/region-scope.service';
 import { User } from '../users/domain/user';
+import { AnalyticsPaginationMeta } from './domain/analytics';
 import {
-  AnalyticsPaginationMeta,
-  CategoryRevenue,
-  DropOffCourse,
-  MonthlyRevenue,
-  PopularCourse,
-} from './domain/analytics';
+  AnalyticsOverviewResponse,
+  DropOffByCourseResponse,
+  MonthlyRevenueResponse,
+  PopularCoursesResponse,
+  RevenueByCategoryResponse,
+} from './dto/analytics-response.dto';
 import { RevenueByCategoryQueryDto } from './dto/revenue-by-category-query.dto';
 import { ScopedPaginationQueryDto } from './dto/scoped-pagination-query.dto';
 import { AnalyticsRepository } from './infrastructure/persistence/analytics.repository';
-
-export type RevenueByCategoryResponse = {
-  data: CategoryRevenue[];
-  meta: {
-    region: string | null;
-  };
-};
-
-export type AnalyticsOverviewResponse = {
-  data: Awaited<ReturnType<AnalyticsRepository['getOverview']>>;
-  meta: {
-    region: string | null;
-  };
-};
-
-export type PopularCoursesResponse = {
-  data: PopularCourse[];
-  meta: AnalyticsPaginationMeta;
-};
-
-export type DropOffByCourseResponse = {
-  data: DropOffCourse[];
-  meta: AnalyticsPaginationMeta;
-};
-
-export type MonthlyRevenueResponse = {
-  data: MonthlyRevenue[];
-  meta: AnalyticsPaginationMeta;
-};
 
 @Injectable()
 export class AnalyticsService {

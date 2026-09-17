@@ -127,6 +127,10 @@ type LoginPayload = {
   };
 };
 
+type ApiResponse<T> = {
+  data: T;
+};
+
 type OverviewPayload = {
   summary: {
     totalStudents: number;
@@ -187,7 +191,8 @@ export async function loginAsRole(roleKey: RoleCredentialKey): Promise<LoginPayl
       return null;
     }
 
-    const payload = (await response.json()) as LoginPayload;
+    const responsePayload = (await response.json()) as ApiResponse<LoginPayload>;
+    const payload = responsePayload.data;
     if (typeof window !== 'undefined') {
       window.localStorage.setItem('accessToken', payload.token);
     }

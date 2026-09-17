@@ -12,13 +12,13 @@ import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { JwtPayloadType } from '../auth/strategies/types/jwt-payload.type';
 import { RequestWithUser } from '../utils/types/request-with-user.type';
 import {
-  AnalyticsOverviewResponse,
-  DropOffByCourseResponse,
-  AnalyticsService,
-  MonthlyRevenueResponse,
-  PopularCoursesResponse,
-  RevenueByCategoryResponse,
-} from './analytics.service';
+  AnalyticsOverviewApiResponse,
+  DropOffByCourseApiResponse,
+  MonthlyRevenueApiResponse,
+  PopularCoursesApiResponse,
+  RevenueByCategoryApiResponse,
+} from './dto/analytics-response.dto';
+import { AnalyticsService } from './analytics.service';
 import { RevenueByCategoryQueryDto } from './dto/revenue-by-category-query.dto';
 import { ScopedPaginationQueryDto } from './dto/scoped-pagination-query.dto';
 
@@ -37,11 +37,18 @@ export class AnalyticsController {
   @Get('overview')
   @UseGuards(AuthGuard('jwt'))
   @HttpCode(HttpStatus.OK)
-  getOverview(
+  async getOverview(
     @Request() request: RequestWithUser<JwtPayloadType>,
     @Query() query: RevenueByCategoryQueryDto,
-  ): Promise<AnalyticsOverviewResponse> {
-    return this.analyticsService.getOverview(request.user.id, query);
+  ): Promise<AnalyticsOverviewApiResponse> {
+    const result = await this.analyticsService.getOverview(request.user.id, query);
+
+    return {
+      success: true,
+      message: 'Analytics overview fetched successfully',
+      data: result.data,
+      meta: result.meta,
+    };
   }
 
   @ApiBearerAuth()
@@ -51,11 +58,18 @@ export class AnalyticsController {
   @Get('revenue-by-category')
   @UseGuards(AuthGuard('jwt'))
   @HttpCode(HttpStatus.OK)
-  getRevenueByCategory(
+  async getRevenueByCategory(
     @Request() request: RequestWithUser<JwtPayloadType>,
     @Query() query: RevenueByCategoryQueryDto,
-  ): Promise<RevenueByCategoryResponse> {
-    return this.analyticsService.getRevenueByCategory(request.user.id, query);
+  ): Promise<RevenueByCategoryApiResponse> {
+    const result = await this.analyticsService.getRevenueByCategory(request.user.id, query);
+
+    return {
+      success: true,
+      message: 'Revenue by category fetched successfully',
+      data: result.data,
+      meta: result.meta,
+    };
   }
 
   @ApiBearerAuth()
@@ -65,11 +79,18 @@ export class AnalyticsController {
   @Get('popular-courses')
   @UseGuards(AuthGuard('jwt'))
   @HttpCode(HttpStatus.OK)
-  getPopularCourses(
+  async getPopularCourses(
     @Request() request: RequestWithUser<JwtPayloadType>,
     @Query() query: ScopedPaginationQueryDto,
-  ): Promise<PopularCoursesResponse> {
-    return this.analyticsService.getPopularCourses(request.user.id, query);
+  ): Promise<PopularCoursesApiResponse> {
+    const result = await this.analyticsService.getPopularCourses(request.user.id, query);
+
+    return {
+      success: true,
+      message: 'Popular courses fetched successfully',
+      data: result.data,
+      meta: result.meta,
+    };
   }
 
   @ApiBearerAuth()
@@ -79,11 +100,18 @@ export class AnalyticsController {
   @Get('drop-off-by-course')
   @UseGuards(AuthGuard('jwt'))
   @HttpCode(HttpStatus.OK)
-  getDropOffByCourse(
+  async getDropOffByCourse(
     @Request() request: RequestWithUser<JwtPayloadType>,
     @Query() query: ScopedPaginationQueryDto,
-  ): Promise<DropOffByCourseResponse> {
-    return this.analyticsService.getDropOffByCourse(request.user.id, query);
+  ): Promise<DropOffByCourseApiResponse> {
+    const result = await this.analyticsService.getDropOffByCourse(request.user.id, query);
+
+    return {
+      success: true,
+      message: 'Course drop-off data fetched successfully',
+      data: result.data,
+      meta: result.meta,
+    };
   }
 
   @ApiBearerAuth()
@@ -93,10 +121,17 @@ export class AnalyticsController {
   @Get('monthly-revenue')
   @UseGuards(AuthGuard('jwt'))
   @HttpCode(HttpStatus.OK)
-  getMonthlyRevenue(
+  async getMonthlyRevenue(
     @Request() request: RequestWithUser<JwtPayloadType>,
     @Query() query: ScopedPaginationQueryDto,
-  ): Promise<MonthlyRevenueResponse> {
-    return this.analyticsService.getMonthlyRevenue(request.user.id, query);
+  ): Promise<MonthlyRevenueApiResponse> {
+    const result = await this.analyticsService.getMonthlyRevenue(request.user.id, query);
+
+    return {
+      success: true,
+      message: 'Monthly revenue fetched successfully',
+      data: result.data,
+      meta: result.meta,
+    };
   }
 }
