@@ -13,10 +13,7 @@ import { Card } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/dashboard-data';
 import type { MonthlyRevenue } from '@/types/analytics';
 
-type MonthlyRevenueChartProps = {
-  data: MonthlyRevenue[];
-};
-
+import type { MonthlyRevenueChartProps } from '@/types/components';
 export function MonthlyRevenueChart({ data }: MonthlyRevenueChartProps) {
   return (
     <Card

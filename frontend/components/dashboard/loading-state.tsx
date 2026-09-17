@@ -1,9 +1,6 @@
 import { Ring } from '@/components/ui/ring';
 
-type LoadingStateProps = {
-  message: string;
-};
-
+import type { LoadingStateProps } from '@/types/components';
 export function LoadingState({ message }: LoadingStateProps) {
   return (
     <div className="loading-state" role="status" aria-live="polite">

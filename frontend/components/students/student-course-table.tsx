@@ -7,11 +7,7 @@ import {
 } from '@/lib/formatters';
 import type { StudentCourse } from '@/types/analytics';
 
-type StudentCourseTableProps = {
-  studentId: string;
-  courses: StudentCourse[];
-};
-
+import type { StudentCourseTableProps } from '@/types/components';
 export function StudentCourseTable({
   studentId,
   courses,

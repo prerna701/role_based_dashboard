@@ -1,10 +1,7 @@
 import React, { ButtonHTMLAttributes } from 'react';
 import styles from '../../app/(auth)/auth.module.css';
 
-interface AuthButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  loading?: boolean;
-}
-
+import type { AuthButtonProps } from '@/types/components';
 export const AuthButton: React.FC<AuthButtonProps> = ({
   children,
   loading,

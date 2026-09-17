@@ -8,17 +8,7 @@ import { LoadingState } from '@/components/dashboard/loading-state';
 import { StudentCourseTable } from './student-course-table';
 import type { StudentsPage } from '@/types/analytics';
 
-type StudentRosterProps = {
-  studentsPage: StudentsPage | null;
-  search: string;
-  page: number;
-  scopeLabel: string;
-  loading: boolean;
-  error: string | null;
-  onSearchChange: (search: string) => void;
-  onPageChange: (page: number) => void;
-};
-
+import type { StudentRosterProps } from '@/types/components';
 export function StudentRoster({
   studentsPage,
   search,

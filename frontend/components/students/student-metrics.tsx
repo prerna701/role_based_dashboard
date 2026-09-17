@@ -1,17 +1,7 @@
 import { BookOpen, Users } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
-export type CompletionTotals = {
-  completed: number;
-  inProgress: number;
-  dropped: number;
-};
-
-type StudentMetricsProps = {
-  totalStudents: number;
-  completionTotals: CompletionTotals;
-};
-
+import type { CompletionTotals, StudentMetricsProps } from '@/types/components';
 export function StudentMetrics({
   totalStudents,
   completionTotals,

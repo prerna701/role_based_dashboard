@@ -1,12 +1,6 @@
 import type { DashboardRole, RoleKey } from '@/types/dashboard';
 
-type RegionScopeControlProps = {
-  role: DashboardRole;
-  roleKey: RoleKey;
-  scopedRegion: string;
-  onRegionChange: (region: string) => void;
-};
-
+import type { RegionScopeControlProps } from '@/types/components';
 export function RegionScopeControl({
   role,
   scopedRegion,

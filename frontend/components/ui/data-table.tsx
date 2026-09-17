@@ -1,11 +1,6 @@
 import type { ReactNode } from 'react';
 
-type DataTableProps = {
-  children: ReactNode;
-  className?: string;
-  minWidth?: number;
-};
-
+import type { DataTableProps } from '@/types/components';
 export function DataTable({
   children,
   className = '',

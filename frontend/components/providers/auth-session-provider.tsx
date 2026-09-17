@@ -22,18 +22,7 @@ import {
 } from '@/lib/dashboard-data';
 import type { RoleKey } from '@/types/dashboard';
 
-type AuthSessionContextValue = {
-  session: AuthSession | null;
-  token: string | null;
-  roleKey: RoleKey;
-  role: (typeof roles)[RoleKey];
-  selectedRegion: string;
-  scopedRegion: string;
-  isReady: boolean;
-  isAuthenticated: boolean;
-  changeRegion: (region: string) => void;
-};
-
+import type { AuthSessionContextValue } from '@/types/components';
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
 
 export function AuthSessionProvider({ children }: { children: ReactNode }) {

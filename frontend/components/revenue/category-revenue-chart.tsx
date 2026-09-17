@@ -14,10 +14,7 @@ import { Card } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/dashboard-data';
 import type { CategoryRevenue } from '@/types/analytics';
 
-type CategoryRevenueChartProps = {
-  data: CategoryRevenue[];
-};
-
+import type { CategoryRevenueChartProps } from '@/types/components';
 export function CategoryRevenueChart({ data }: CategoryRevenueChartProps) {
   return (
     <Card

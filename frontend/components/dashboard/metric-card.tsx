@@ -1,14 +1,7 @@
 import type { ReactNode } from 'react';
 import { Card } from '@/components/ui/card';
 
-type MetricCardProps = {
-  label: string;
-  value: string;
-  caption: string;
-  trend: string;
-  icon: ReactNode;
-};
-
+import type { MetricCardProps } from '@/types/components';
 export function MetricCard({ label, value, caption, trend, icon }: MetricCardProps) {
   return (
     <Card className="metric-card">

@@ -6,15 +6,7 @@ import { EmptyState } from '@/components/dashboard/empty-state';
 import { formatCurrency } from '@/lib/dashboard-data';
 import type { PopularCourse } from '@/types/analytics';
 
-type CourseTableProps = {
-  courses: PopularCourse[];
-  categories: string[];
-  query: string;
-  categoryFilter: string;
-  onQueryChange: (query: string) => void;
-  onCategoryFilterChange: (category: string) => void;
-};
-
+import type { CourseTableProps } from '@/types/components';
 export function CourseTable({
   courses,
   categories,

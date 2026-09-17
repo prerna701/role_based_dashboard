@@ -1,11 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/dashboard-data';
 
-type RevenueMetricsProps = {
-  totalRevenue: number;
-  categoryCount: number;
-};
-
+import type { RevenueMetricsProps } from '@/types/components';
 export function RevenueMetrics({
   totalRevenue,
   categoryCount,

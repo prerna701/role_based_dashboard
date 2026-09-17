@@ -3,12 +3,9 @@ import {
   enrollmentStatusLabels,
   type EnrollmentStatus,
 } from '@/lib/formatters';
-import type { CompletionTotals } from './student-metrics';
+import type { CompletionTotals } from '@/types/components';
 
-type CompletionStatusCardProps = {
-  totals: CompletionTotals;
-};
-
+import type { CompletionStatusCardProps } from '@/types/components';
 const completionRows: Array<{
   key: keyof CompletionTotals;
   labelKey: EnrollmentStatus;

@@ -1,11 +1,7 @@
 import React, { InputHTMLAttributes, forwardRef } from 'react';
 import styles from '../../app/(auth)/auth.module.css';
 
-interface AuthInputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label: string;
-  error?: string;
-}
-
+import type { AuthInputProps } from '@/types/components';
 export const AuthInput = forwardRef<HTMLInputElement, AuthInputProps>(
   ({ label, error, id, className, ...props }, ref) => {
     const inputId = id || label.toLowerCase().replace(/\s+/g, '-');

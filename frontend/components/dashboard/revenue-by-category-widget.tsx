@@ -24,13 +24,7 @@ import type { RoleKey } from '@/types/dashboard';
 import { EmptyState } from './empty-state';
 import { LoadingState } from './loading-state';
 
-type RevenueByCategoryWidgetProps = {
-  initialData: CategoryRevenue[];
-  initialRegion: string;
-  roleKey: RoleKey;
-  token: string | null;
-};
-
+import type { RevenueByCategoryWidgetProps } from '@/types/components';
 const regionLabels: Record<string, string> = {
   all: 'All Regions',
   north: 'North',

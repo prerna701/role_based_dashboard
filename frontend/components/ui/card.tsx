@@ -1,13 +1,6 @@
 import type { ReactNode } from 'react';
 
-type CardProps = {
-  children: ReactNode;
-  className?: string;
-  title?: string;
-  eyebrow?: string;
-  action?: ReactNode;
-};
-
+import type { CardProps } from '@/types/components';
 export function Card({ children, className = '', title, eyebrow, action }: CardProps) {
   return (
     <section className={`surface-card ${className}`}>

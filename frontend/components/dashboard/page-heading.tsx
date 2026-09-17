@@ -3,16 +3,7 @@ import { Button } from '@/components/ui/button';
 import { RegionScopeControl } from './region-scope-control';
 import type { DashboardRole, RoleKey } from '@/types/dashboard';
 
-type PageHeadingProps = {
-  eyebrow: string;
-  title: string;
-  description: string;
-  role?: DashboardRole;
-  roleKey?: RoleKey;
-  scopedRegion?: string;
-  onRegionChange?: (region: string) => void;
-};
-
+import type { PageHeadingProps } from '@/types/components';
 export function PageHeading({
   eyebrow,
   title,

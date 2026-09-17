@@ -1,13 +1,7 @@
 import Link from 'next/link';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
-type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  children: ReactNode;
-  className?: string;
-  href?: string;
-  variant?: 'primary' | 'secondary' | 'ghost';
-};
-
+import type { ButtonProps } from '@/types/components';
 export function Button({
   children,
   className = '',

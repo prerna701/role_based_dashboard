@@ -5,10 +5,8 @@ import { PageHeading } from '@/components/dashboard/page-heading';
 import { Sidebar } from '@/components/dashboard/sidebar';
 import { useAuthSession } from '@/components/providers/auth-session-provider';
 import { CompletionStatusCard } from '@/components/students/completion-status-card';
-import {
-  StudentMetrics,
-  type CompletionTotals,
-} from '@/components/students/student-metrics';
+import { StudentMetrics } from '@/components/students/student-metrics';
+import type { CompletionTotals } from '@/types/components';
 import { StudentRoster } from '@/components/students/student-roster';
 import { loadStudents } from '@/lib/analytics-api';
 import type { StudentsPage } from '@/types/analytics';
