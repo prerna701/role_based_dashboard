@@ -13,6 +13,7 @@ import {
 import { RoleEntity } from '../../../../../roles/infrastructure/persistence/relational/entities/role.entity';
 import { StatusEntity } from '../../../../../statuses/infrastructure/persistence/relational/entities/status.entity';
 import { FileEntity } from '../../../../../files/infrastructure/persistence/relational/entities/file.entity';
+import { RegionEntity } from '../../../../../learning/entities/region.entity';
 
 import { AuthProvidersEnum } from '../../../../../auth/auth-providers.enum';
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
@@ -62,6 +63,17 @@ export class UserEntity extends EntityRelationalHelper {
     eager: true,
   })
   status?: StatusEntity;
+
+  @Index()
+  @Column({ type: String, nullable: true })
+  regionCode?: string | null;
+
+  @ManyToOne(() => RegionEntity, {
+    eager: true,
+    nullable: true,
+  })
+  @JoinColumn({ name: 'regionCode', referencedColumnName: 'code' })
+  region?: RegionEntity | null;
 
   @CreateDateColumn()
   createdAt: Date;

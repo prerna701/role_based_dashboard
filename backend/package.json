@@ -8,7 +8,9 @@
   "scripts": {
     "typeorm": "env-cmd -- ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
     "migration:generate": "npm run typeorm -- --dataSource=src/database/data-source.ts migration:generate",
-   
+    "migration:run": "npm run typeorm -- --dataSource=src/database/data-source.ts migration:run",
+    "migration:revert": "npm run typeorm -- --dataSource=src/database/data-source.ts migration:revert",
+    "seed:assessment": "env-cmd -- ts-node -r tsconfig-paths/register src/database/seeds/relational/assessment/run-assessment-seed.ts",
     "prebuild": "rimraf dist",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -23,12 +25,10 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "env-cmd -- jest --config ./test/jest-e2e.json",
-    
     "prepare": "is-ci || husky",
     "release": "release-it"
   },
   "dependencies": {
-    
     "@nestjs/common": "11.1.18",
     "@nestjs/config": "4.0.3",
     "@nestjs/core": "11.1.18",
@@ -136,7 +136,6 @@
     },
     "npm": {
       "publish": false
-    } 
     }
   }
-
+}

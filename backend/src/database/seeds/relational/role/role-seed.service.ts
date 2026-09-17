@@ -41,5 +41,20 @@ export class RoleSeedService {
         }),
       );
     }
+
+    const countRegionManager = await this.repository.count({
+      where: {
+        id: RoleEnum.regionManager,
+      },
+    });
+
+    if (!countRegionManager) {
+      await this.repository.save(
+        this.repository.create({
+          id: RoleEnum.regionManager,
+          name: 'Region Manager',
+        }),
+      );
+    }
   }
 }

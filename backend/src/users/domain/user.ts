@@ -69,6 +69,14 @@ export class User {
   })
   status?: Status;
 
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'North',
+  })
+  @Expose({ groups: ['me', 'admin'] })
+  regionCode?: string | null;
+
   @ApiProperty()
   createdAt: Date;
 
