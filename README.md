@@ -78,6 +78,13 @@ Content-Type: application/json
 }
 ```
 
+Dashboard endpoint:
+
+```http
+GET /api/v1/analytics/overview?region=North
+Authorization: Bearer <token>
+```
+
 Mandatory widget endpoint:
 
 ```http
@@ -89,7 +96,7 @@ Response:
 
 ```json
 {
-  "data": [{ "category": "Programming", "revenue": 12345 }],
+  "data": [{ "category": "Programming", "enrollments": 12, "revenue": 12345, "share": 35.2 }],
   "meta": { "region": "North" }
 }
 ```
@@ -102,9 +109,18 @@ Authorization: Bearer <token>
 ```
 
 ```http
+GET /api/v1/analytics/popular-courses?page=1&limit=10&region=North
+Authorization: Bearer <token>
+```
+
+```http
 GET /api/v1/analytics/monthly-revenue?page=1&limit=10&region=North
 Authorization: Bearer <token>
 ```
+
+The frontend dashboard signs in with the seeded role accounts from the role
+switcher and calls these analytics endpoints with the returned JWT, so browser
+Network tab inspection shows real backend traffic.
 
 Paginated endpoints return:
 

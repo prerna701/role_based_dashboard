@@ -31,14 +31,13 @@ import {
   YAxis,
 } from 'recharts';
 import { Card } from '@/components/ui/card';
-import { loadDashboardData } from '@/lib/analytics-api';
+import { loadDashboardData, loginAsRole } from '@/lib/analytics-api';
 import {
   canAccessRegion,
   categoryRevenue as fallbackCategoryRevenue,
   completionStatus,
   dropOffRisks as fallbackDropOffRisks,
   formatCurrency,
-  getRegionSummary,
   monthlyRevenue as fallbackMonthlyRevenue,
   popularCourses,
   regions,
@@ -51,17 +50,27 @@ type RoleKey = keyof typeof roles;
 export function DashboardShell() {
   const [roleKey, setRoleKey] = useState<RoleKey>('admin');
   const [selectedRegion, setSelectedRegion] = useState('all');
+  const [summary, setSummary] = useState({
+    totalStudents: regions[0].students,
+    totalEnrollments: regions[0].enrollments,
+    averageRating: 3.8,
+    netRevenue: regions[0].revenue,
+  });
+  const [regionData, setRegionData] = useState(regions);
+  const [completionData, setCompletionData] = useState(completionStatus);
   const [categoryData, setCategoryData] = useState(fallbackCategoryRevenue);
   const [dropOffData, setDropOffData] = useState(fallbackDropOffRisks);
   const [monthlyData, setMonthlyData] = useState(fallbackMonthlyRevenue);
-  const [source, setSource] = useState<'api' | 'mock'>('mock');
+  const [courseData, setCourseData] = useState(popularCourses);
+  const [token, setToken] = useState<string | null>(null);
+  const [source, setSource] = useState<'api' | 'preview'>('preview');
+  const [authMessage, setAuthMessage] = useState('Connecting to seeded Admin account...');
   const [query, setQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
 
   const role = roles[roleKey];
   const scopedRegion = resolveRegionForRole(roleKey, selectedRegion);
-  const summary = getRegionSummary(scopedRegion);
   const isRegionalRole = roleKey !== 'admin';
 
   useEffect(() => {
@@ -69,27 +78,65 @@ export function DashboardShell() {
   }, [roleKey]);
 
   useEffect(() => {
-    const token =
-      typeof window !== 'undefined'
-        ? window.localStorage.getItem('accessToken') ??
-          window.localStorage.getItem('authToken')
-        : null;
-
     loadDashboardData({ token, region: scopedRegion }).then((data) => {
+      setSummary(data.summary);
+      setRegionData([
+        {
+          key: 'all',
+          label: 'All Regions',
+          students: data.summary.totalStudents,
+          enrollments: data.summary.totalEnrollments,
+          revenue: data.summary.netRevenue,
+        },
+        ...data.regions.filter((region) => region.key !== 'all'),
+      ]);
+      setCompletionData(data.completionStatus);
       setCategoryData(data.categoryRevenue);
       setDropOffData(data.dropOffRisks);
       setMonthlyData(data.monthlyRevenue);
+      setCourseData(data.popularCourses);
       setSource(data.source);
     });
-  }, [scopedRegion]);
+  }, [scopedRegion, token]);
+
+  useEffect(() => {
+    loginAsRole('admin').then((payload) => {
+      if (payload?.token) {
+        setToken(payload.token);
+        setAuthMessage('Seeded Admin account connected');
+      } else {
+        setAuthMessage('Backend login unavailable - preview data shown');
+      }
+    });
+  }, []);
 
   const filteredCourses = useMemo(() => {
-    return popularCourses.filter((course) => {
+    return courseData.filter((course) => {
       const matchesSearch = course.title.toLowerCase().includes(query.toLowerCase());
-      const matchesCategory = categoryFilter === 'all' || course.category === categoryFilter;
+      const matchesCategory =
+        categoryFilter === 'all' ||
+        course.category.toLowerCase().includes(categoryFilter.toLowerCase());
       return matchesSearch && matchesCategory;
     });
-  }, [categoryFilter, query]);
+  }, [categoryFilter, courseData, query]);
+
+  const categoryOptions = useMemo(() => {
+    return Array.from(new Set(courseData.map((course) => course.category)));
+  }, [courseData]);
+
+  async function switchRole(nextRole: RoleKey) {
+    setRoleKey(nextRole);
+    setAuthMessage(`Connecting to seeded ${roles[nextRole].label} account...`);
+
+    const payload = await loginAsRole(nextRole);
+    if (payload?.token) {
+      setToken(payload.token);
+      setAuthMessage(`Seeded ${roles[nextRole].label} account connected`);
+    } else {
+      setToken(null);
+      setAuthMessage('Backend login unavailable - preview data shown');
+    }
+  }
 
   function handleRegionClick(regionKey: string) {
     if (canAccessRegion(roleKey, regionKey)) {
@@ -99,12 +146,31 @@ export function DashboardShell() {
 
   function refreshDashboard() {
     setRefreshing(true);
+    loadDashboardData({ token, region: scopedRegion }).then((data) => {
+      setSummary(data.summary);
+      setRegionData([
+        {
+          key: 'all',
+          label: 'All Regions',
+          students: data.summary.totalStudents,
+          enrollments: data.summary.totalEnrollments,
+          revenue: data.summary.netRevenue,
+        },
+        ...data.regions.filter((region) => region.key !== 'all'),
+      ]);
+      setCompletionData(data.completionStatus);
+      setCategoryData(data.categoryRevenue);
+      setDropOffData(data.dropOffRisks);
+      setMonthlyData(data.monthlyRevenue);
+      setCourseData(data.popularCourses);
+      setSource(data.source);
+    });
     setTimeout(() => setRefreshing(false), 650);
   }
 
   return (
     <div className="dashboard-shell">
-      <Header role={role} roleKey={roleKey} setRoleKey={setRoleKey} />
+      <Header role={role} roleKey={roleKey} setRoleKey={switchRole} />
       <Sidebar />
 
       <main className="dashboard-main">
@@ -120,7 +186,8 @@ export function DashboardShell() {
             </div>
           </div>
           <div className="toolbar-actions">
-            <span className="api-pill">{source === 'api' ? 'Live API' : 'Fallback Data'}</span>
+            <span className="api-pill">{source === 'api' ? 'Live API' : 'Preview Data'}</span>
+            <span className="api-pill">{authMessage}</span>
             <button className="icon-button" onClick={refreshDashboard} title="Refresh dashboard">
               <RefreshCw size={18} className={refreshing ? 'spin' : ''} />
             </button>
@@ -148,7 +215,7 @@ export function DashboardShell() {
             </div>
           </div>
           <div className="region-tabs">
-            {regions.map((region) => {
+            {regionData.map((region) => {
               const accessible = canAccessRegion(roleKey, region.key);
               const active = scopedRegion === region.key;
 
@@ -175,28 +242,28 @@ export function DashboardShell() {
         <section className="metric-grid">
           <MetricCard
             label="Total Students"
-            value={summary.students.toString()}
+            value={summary.totalStudents.toString()}
             caption="COUNT(DISTINCT students.id)"
             trend="+12% MoM"
             icon={<Users size={20} />}
           />
           <MetricCard
             label="Total Enrollments"
-            value={summary.enrollments.toString()}
+            value={summary.totalEnrollments.toString()}
             caption="COUNT(enrollments.id)"
-            trend={`${(summary.enrollments / summary.students).toFixed(2)} crs/student`}
+            trend={`${(summary.totalEnrollments / summary.totalStudents).toFixed(2)} crs/student`}
             icon={<GraduationCap size={20} />}
           />
           <MetricCard
             label="Consortium Rating"
-            value="3.8 / 5.0"
+            value={`${summary.averageRating.toFixed(1)} / 5.0`}
             caption="Based on submitted ratings"
             trend="4-star median"
             icon={<Star size={20} />}
           />
           <MetricCard
             label="Net Fee Revenue"
-            value={formatCurrency(summary.revenue)}
+            value={formatCurrency(summary.netRevenue)}
             caption="SUM(fee_paid)"
             trend="+18.4% YoY"
             icon={<TrendingUp size={20} />}
@@ -216,7 +283,7 @@ export function DashboardShell() {
                   <CartesianGrid stroke="#d3e4fe" strokeDasharray="4 4" vertical={false} />
                   <XAxis dataKey="category" tickLine={false} axisLine={false} />
                   <YAxis
-                    tickFormatter={(value) => `₹${Number(value) / 1000}k`}
+                    tickFormatter={(value) => `Rs ${Number(value) / 1000}k`}
                     tickLine={false}
                     axisLine={false}
                   />
@@ -250,7 +317,7 @@ export function DashboardShell() {
                 <small>retention</small>
               </div>
               <div className="status-list">
-                {completionStatus.map((item) => (
+                {completionData.map((item) => (
                   <div key={item.label} className="status-row">
                     <span style={{ background: item.color }} />
                     <div>
@@ -277,7 +344,7 @@ export function DashboardShell() {
               </div>
             ) : (
               <div className="region-bars">
-                {regions
+                {regionData
                   .filter((region) => region.key !== 'all')
                   .map((region) => (
                     <div key={region.key} className="region-bar">
@@ -289,7 +356,7 @@ export function DashboardShell() {
                       <div className="bar-track">
                         <span
                           style={{
-                            width: `${Math.round((region.revenue / regions[0].revenue) * 100)}%`,
+                            width: `${Math.round((region.revenue / regionData[0].revenue) * 100)}%`,
                           }}
                         />
                       </div>
@@ -310,7 +377,7 @@ export function DashboardShell() {
                 <CartesianGrid stroke="#d3e4fe" strokeDasharray="4 4" vertical={false} />
                 <XAxis dataKey="month" tickLine={false} axisLine={false} />
                 <YAxis
-                  tickFormatter={(value) => `₹${Number(value) / 1000}k`}
+                  tickFormatter={(value) => `Rs ${Number(value) / 1000}k`}
                   tickLine={false}
                   axisLine={false}
                 />
@@ -342,10 +409,11 @@ export function DashboardShell() {
               onChange={(event) => setCategoryFilter(event.target.value)}
             >
               <option value="all">All Categories</option>
-              <option value="Data">Data</option>
-              <option value="Programming">Programming</option>
-              <option value="Business">Business</option>
-              <option value="Design">Design</option>
+              {categoryOptions.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
             </select>
           </div>
           <div className="data-table-wrap">

@@ -12,9 +12,11 @@ import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { JwtPayloadType } from '../auth/strategies/types/jwt-payload.type';
 import { RequestWithUser } from '../utils/types/request-with-user.type';
 import {
+  AnalyticsOverviewResponse,
   DropOffByCourseResponse,
   AnalyticsService,
   MonthlyRevenueResponse,
+  PopularCoursesResponse,
   RevenueByCategoryResponse,
 } from './analytics.service';
 import { RevenueByCategoryQueryDto } from './dto/revenue-by-category-query.dto';
@@ -30,6 +32,20 @@ export class AnalyticsController {
 
   @ApiBearerAuth()
   @ApiOkResponse({
+    description: 'Dashboard KPI, completion, and region overview metrics.',
+  })
+  @Get('overview')
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.OK)
+  getOverview(
+    @Request() request: RequestWithUser<JwtPayloadType>,
+    @Query() query: RevenueByCategoryQueryDto,
+  ): Promise<AnalyticsOverviewResponse> {
+    return this.analyticsService.getOverview(request.user.id, query);
+  }
+
+  @ApiBearerAuth()
+  @ApiOkResponse({
     description: 'Total revenue grouped by course category.',
   })
   @Get('revenue-by-category')
@@ -40,6 +56,20 @@ export class AnalyticsController {
     @Query() query: RevenueByCategoryQueryDto,
   ): Promise<RevenueByCategoryResponse> {
     return this.analyticsService.getRevenueByCategory(request.user.id, query);
+  }
+
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description: 'Most popular courses ranked by enrollment count.',
+  })
+  @Get('popular-courses')
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.OK)
+  getPopularCourses(
+    @Request() request: RequestWithUser<JwtPayloadType>,
+    @Query() query: ScopedPaginationQueryDto,
+  ): Promise<PopularCoursesResponse> {
+    return this.analyticsService.getPopularCourses(request.user.id, query);
   }
 
   @ApiBearerAuth()

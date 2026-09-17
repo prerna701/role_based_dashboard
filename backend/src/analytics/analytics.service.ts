@@ -7,7 +7,9 @@ import { ScopedPaginationQueryDto } from './dto/scoped-pagination-query.dto';
 
 type RevenueByCategoryRow = {
   category: string;
+  enrollments: string | number;
   revenue: string | number | null;
+  share: string | number | null;
 };
 
 type DropOffByCourseRow = {
@@ -26,6 +28,37 @@ type MonthlyRevenueRow = {
   revenue: string | number | null;
 };
 
+type OverviewSummaryRow = {
+  totalStudents: string | number;
+  totalEnrollments: string | number;
+  averageRating: string | number | null;
+  netRevenue: string | number | null;
+};
+
+type RegionSummaryRow = {
+  key: string;
+  label: string;
+  students: string | number;
+  enrollments: string | number;
+  revenue: string | number | null;
+};
+
+type CompletionStatusRow = {
+  label: string;
+  value: string | number;
+  percent: string | number | null;
+};
+
+type PopularCourseRow = {
+  courseId: string;
+  title: string;
+  category: string;
+  enrollments: string | number;
+  averageRating: string | number | null;
+  totalFees: string | number | null;
+  completionRate: string | number | null;
+};
+
 type CountRow = {
   total: string | number;
 };
@@ -41,11 +74,52 @@ type PaginationMeta = {
 export type RevenueByCategoryResponse = {
   data: {
     category: string;
+    enrollments: number;
     revenue: number;
+    share: number;
   }[];
   meta: {
     region: string | null;
   };
+};
+
+export type AnalyticsOverviewResponse = {
+  data: {
+    summary: {
+      totalStudents: number;
+      totalEnrollments: number;
+      averageRating: number;
+      netRevenue: number;
+    };
+    regions: {
+      key: string;
+      label: string;
+      students: number;
+      enrollments: number;
+      revenue: number;
+    }[];
+    completionStatus: {
+      label: string;
+      value: number;
+      percent: number;
+    }[];
+  };
+  meta: {
+    region: string | null;
+  };
+};
+
+export type PopularCoursesResponse = {
+  data: {
+    courseId: string;
+    title: string;
+    category: string;
+    enrollments: number;
+    averageRating: number;
+    totalFees: number;
+    completionRate: number;
+  }[];
+  meta: PaginationMeta;
 };
 
 export type DropOffByCourseResponse = {
@@ -77,29 +151,117 @@ export class AnalyticsService {
     private readonly regionScopeService: RegionScopeService,
   ) {}
 
+  async getOverview(
+    userId: User['id'],
+    query: RevenueByCategoryQueryDto,
+  ): Promise<AnalyticsOverviewResponse> {
+    const scope = await this.resolveScope(userId, query.region);
+
+    const [summaryRow] = (await this.dataSource.query(
+      `
+        SELECT
+          COUNT(DISTINCT student_id)::int AS "totalStudents",
+          COUNT(*)::int AS "totalEnrollments",
+          ROUND(COALESCE(AVG(rating), 0)::numeric, 2) AS "averageRating",
+          COALESCE(SUM(fee_paid), 0) AS "netRevenue"
+        FROM enrollment_facts
+        WHERE ($1::text IS NULL OR region_code = $1::text)
+      `,
+      [scope.regionCode],
+    )) as OverviewSummaryRow[];
+
+    const regionRows = (await this.dataSource.query(
+      `
+        SELECT
+          LOWER(region_code) AS key,
+          region_name AS label,
+          COUNT(DISTINCT student_id)::int AS students,
+          COUNT(*)::int AS enrollments,
+          COALESCE(SUM(fee_paid), 0) AS revenue
+        FROM enrollment_facts
+        WHERE ($1::text IS NULL OR region_code = $1::text)
+        GROUP BY region_code, region_name
+        ORDER BY revenue DESC, region_name ASC
+      `,
+      [scope.regionCode],
+    )) as RegionSummaryRow[];
+
+    const completionRows = (await this.dataSource.query(
+      `
+        SELECT
+          INITCAP(REPLACE(completion_status, '_', ' ')) AS label,
+          COUNT(*)::int AS value,
+          ROUND((COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER (), 0)) * 100, 1) AS percent
+        FROM enrollment_facts
+        WHERE ($1::text IS NULL OR region_code = $1::text)
+        GROUP BY completion_status
+        ORDER BY value DESC, label ASC
+      `,
+      [scope.regionCode],
+    )) as CompletionStatusRow[];
+
+    return {
+      data: {
+        summary: {
+          totalStudents: Number(summaryRow?.totalStudents ?? 0),
+          totalEnrollments: Number(summaryRow?.totalEnrollments ?? 0),
+          averageRating: Number(summaryRow?.averageRating ?? 0),
+          netRevenue: Number(summaryRow?.netRevenue ?? 0),
+        },
+        regions: regionRows.map((row) => ({
+          key: row.key,
+          label: row.label,
+          students: Number(row.students),
+          enrollments: Number(row.enrollments),
+          revenue: Number(row.revenue ?? 0),
+        })),
+        completionStatus: completionRows.map((row) => ({
+          label: row.label,
+          value: Number(row.value),
+          percent: Number(row.percent ?? 0),
+        })),
+      },
+      meta: {
+        region: scope.regionCode,
+      },
+    };
+  }
+
   async getRevenueByCategory(
     userId: User['id'],
     query: RevenueByCategoryQueryDto,
   ): Promise<RevenueByCategoryResponse> {
-    const scope = await this.regionScopeService.resolveForUserId(
-      userId,
-      query.region,
-    );
-
-    await this.assertRegionExists(scope.regionCode);
+    const scope = await this.resolveScope(userId, query.region);
 
     const rows = (await this.dataSource.query(
       `
-        SELECT cat.name AS category, COALESCE(r.revenue, 0) AS revenue
-        FROM categories cat
-        LEFT JOIN (
-          SELECT c.category_id, SUM(e.fee_paid) AS revenue
+        WITH category_totals AS (
+          SELECT
+            c.category_id,
+            COUNT(*)::int AS enrollments,
+            COALESCE(SUM(e.fee_paid), 0) AS revenue
           FROM enrollments e
           INNER JOIN students s ON s.id = e.student_id
           INNER JOIN courses c ON c.id = e.course_id
           WHERE ($1::text IS NULL OR s.region_code = $1::text)
           GROUP BY c.category_id
-        ) r ON r.category_id = cat.id
+        )
+        SELECT
+          cat.name AS category,
+          COALESCE(ct.enrollments, 0) AS enrollments,
+          COALESCE(ct.revenue, 0) AS revenue,
+          CASE
+            WHEN SUM(COALESCE(ct.revenue, 0)) OVER () = 0 THEN 0
+            ELSE ROUND(
+              (
+                COALESCE(ct.revenue, 0)
+                / SUM(COALESCE(ct.revenue, 0)) OVER ()
+              ) * 100,
+              1
+            )
+          END AS share
+        FROM categories cat
+        LEFT JOIN category_totals ct ON ct.category_id = cat.id
         ORDER BY revenue DESC, cat.name ASC
       `,
       [scope.regionCode],
@@ -108,11 +270,69 @@ export class AnalyticsService {
     return {
       data: rows.map((row) => ({
         category: row.category,
+        enrollments: Number(row.enrollments),
         revenue: Number(row.revenue ?? 0),
+        share: Number(row.share ?? 0),
       })),
       meta: {
         region: scope.regionCode,
       },
+    };
+  }
+
+  async getPopularCourses(
+    userId: User['id'],
+    query: ScopedPaginationQueryDto,
+  ): Promise<PopularCoursesResponse> {
+    const scope = await this.resolveScope(userId, query.region);
+    const { limit, offset, page } = this.getPagination(query);
+
+    const rows = (await this.dataSource.query(
+      `
+        SELECT
+          course_external_id AS "courseId",
+          course_title AS title,
+          category_name AS category,
+          COUNT(*)::int AS enrollments,
+          ROUND(COALESCE(AVG(rating), 0)::numeric, 2) AS "averageRating",
+          COALESCE(SUM(fee_paid), 0) AS "totalFees",
+          ROUND(
+            (
+              COUNT(*) FILTER (WHERE completion_status = 'completed')::numeric
+              / NULLIF(COUNT(*), 0)
+            ) * 100,
+            1
+          ) AS "completionRate"
+        FROM enrollment_facts
+        WHERE ($1::text IS NULL OR region_code = $1::text)
+        GROUP BY course_external_id, course_title, category_name
+        ORDER BY enrollments DESC, "averageRating" DESC, course_title ASC
+        LIMIT $2 OFFSET $3
+      `,
+      [scope.regionCode, limit, offset],
+    )) as PopularCourseRow[];
+
+    const total = await this.getGroupedCount(
+      `
+        SELECT course_id
+        FROM enrollment_facts
+        WHERE ($1::text IS NULL OR region_code = $1::text)
+        GROUP BY course_id
+      `,
+      [scope.regionCode],
+    );
+
+    return {
+      data: rows.map((row) => ({
+        courseId: row.courseId,
+        title: row.title,
+        category: row.category,
+        enrollments: Number(row.enrollments),
+        averageRating: Number(row.averageRating ?? 0),
+        totalFees: Number(row.totalFees ?? 0),
+        completionRate: Number(row.completionRate ?? 0),
+      })),
+      meta: this.buildPaginationMeta(scope.regionCode, page, limit, total),
     };
   }
 
