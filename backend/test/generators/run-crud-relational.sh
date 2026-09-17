@@ -1,15 +1,3 @@
-#!/usr/bin/env bash
-#
-# Full e2e orchestrator for the relational generator suite (Phase 2).
-#
-# Runs the generator matrix on the host, brings up the relational Docker
-# stack (volume-mounting the freshly-generated source), then runs the
-# CRUD jest spec inside the API container against the live HTTP API.
-#
-# Cleanup tears down Docker, removes generated source dirs, and reverts
-# tracked changes — bounded to src/ and migration files we created.
-#
-# Usage: bash test/generators/run-crud-relational.sh
 
 set -euo pipefail
 
