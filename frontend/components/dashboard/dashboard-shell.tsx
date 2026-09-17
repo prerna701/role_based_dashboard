@@ -2,15 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
-  BarChart3,
-  Bell,
   BookOpen,
   Download,
-  Globe2,
   GraduationCap,
-  LayoutDashboard,
   Lock,
-  LogOut,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -31,40 +26,29 @@ import {
   YAxis,
 } from 'recharts';
 import { Card } from '@/components/ui/card';
-import { loadDashboardData, loginAsRole } from '@/lib/analytics-api';
+import {
+  loadDashboardData,
+  loginAsRole,
+} from '@/lib/analytics-api';
 import {
   canAccessRegion,
-  categoryRevenue as fallbackCategoryRevenue,
-  completionStatus,
-  dropOffRisks as fallbackDropOffRisks,
   formatCurrency,
-  monthlyRevenue as fallbackMonthlyRevenue,
-  popularCourses,
-  regions,
   resolveRegionForRole,
   roles,
 } from '@/lib/dashboard-data';
-
-type RoleKey = keyof typeof roles;
+import { EmptyState } from './empty-state';
+import { MetricCard } from './metric-card';
+import { Sidebar } from './sidebar';
+import type { DashboardData } from '@/types/analytics';
+import type { RoleKey } from '@/types/dashboard';
 
 export function DashboardShell() {
   const [roleKey, setRoleKey] = useState<RoleKey>('admin');
   const [selectedRegion, setSelectedRegion] = useState('all');
-  const [summary, setSummary] = useState({
-    totalStudents: regions[0].students,
-    totalEnrollments: regions[0].enrollments,
-    averageRating: 3.8,
-    netRevenue: regions[0].revenue,
-  });
-  const [regionData, setRegionData] = useState(regions);
-  const [completionData, setCompletionData] = useState(completionStatus);
-  const [categoryData, setCategoryData] = useState(fallbackCategoryRevenue);
-  const [dropOffData, setDropOffData] = useState(fallbackDropOffRisks);
-  const [monthlyData, setMonthlyData] = useState(fallbackMonthlyRevenue);
-  const [courseData, setCourseData] = useState(popularCourses);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [source, setSource] = useState<'api' | 'preview'>('preview');
   const [authMessage, setAuthMessage] = useState('Connecting to seeded Admin account...');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
@@ -78,63 +62,56 @@ export function DashboardShell() {
   }, [roleKey]);
 
   useEffect(() => {
-    loadDashboardData({ token, region: scopedRegion }).then((data) => {
-      setSummary(data.summary);
-      setRegionData([
-        {
-          key: 'all',
-          label: 'All Regions',
-          students: data.summary.totalStudents,
-          enrollments: data.summary.totalEnrollments,
-          revenue: data.summary.netRevenue,
-        },
-        ...data.regions.filter((region) => region.key !== 'all'),
-      ]);
-      setCompletionData(data.completionStatus);
-      setCategoryData(data.categoryRevenue);
-      setDropOffData(data.dropOffRisks);
-      setMonthlyData(data.monthlyRevenue);
-      setCourseData(data.popularCourses);
-      setSource(data.source);
-    });
+    if (!token) {
+      return;
+    }
+
+    setErrorMessage(null);
+    loadDashboardData({ token, region: scopedRegion })
+      .then(setDashboardData)
+      .catch((error: Error) => setErrorMessage(error.message));
   }, [scopedRegion, token]);
 
   useEffect(() => {
-    loginAsRole('admin').then((payload) => {
-      if (payload?.token) {
+    loginAsRole('admin')
+      .then((payload) => {
         setToken(payload.token);
         setAuthMessage('Seeded Admin account connected');
-      } else {
-        setAuthMessage('Backend login unavailable - preview data shown');
-      }
-    });
+      })
+      .catch((error: Error) => {
+        setErrorMessage(error.message);
+        setAuthMessage('Backend login unavailable');
+      });
   }, []);
 
   const filteredCourses = useMemo(() => {
-    return courseData.filter((course) => {
+    return (dashboardData?.popularCourses ?? []).filter((course) => {
       const matchesSearch = course.title.toLowerCase().includes(query.toLowerCase());
       const matchesCategory =
         categoryFilter === 'all' ||
         course.category.toLowerCase().includes(categoryFilter.toLowerCase());
       return matchesSearch && matchesCategory;
     });
-  }, [categoryFilter, courseData, query]);
+  }, [categoryFilter, dashboardData?.popularCourses, query]);
 
   const categoryOptions = useMemo(() => {
-    return Array.from(new Set(courseData.map((course) => course.category)));
-  }, [courseData]);
+    return Array.from(new Set((dashboardData?.popularCourses ?? []).map((course) => course.category)));
+  }, [dashboardData?.popularCourses]);
 
   async function switchRole(nextRole: RoleKey) {
     setRoleKey(nextRole);
     setAuthMessage(`Connecting to seeded ${roles[nextRole].label} account...`);
 
-    const payload = await loginAsRole(nextRole);
-    if (payload?.token) {
+    try {
+      const payload = await loginAsRole(nextRole);
       setToken(payload.token);
       setAuthMessage(`Seeded ${roles[nextRole].label} account connected`);
-    } else {
+      setErrorMessage(null);
+    } catch (error) {
       setToken(null);
-      setAuthMessage('Backend login unavailable - preview data shown');
+      setDashboardData(null);
+      setErrorMessage(error instanceof Error ? error.message : 'Login failed.');
+      setAuthMessage('Backend login unavailable');
     }
   }
 
@@ -146,31 +123,39 @@ export function DashboardShell() {
 
   function refreshDashboard() {
     setRefreshing(true);
-    loadDashboardData({ token, region: scopedRegion }).then((data) => {
-      setSummary(data.summary);
-      setRegionData([
-        {
-          key: 'all',
-          label: 'All Regions',
-          students: data.summary.totalStudents,
-          enrollments: data.summary.totalEnrollments,
-          revenue: data.summary.netRevenue,
-        },
-        ...data.regions.filter((region) => region.key !== 'all'),
-      ]);
-      setCompletionData(data.completionStatus);
-      setCategoryData(data.categoryRevenue);
-      setDropOffData(data.dropOffRisks);
-      setMonthlyData(data.monthlyRevenue);
-      setCourseData(data.popularCourses);
-      setSource(data.source);
-    });
-    setTimeout(() => setRefreshing(false), 650);
+    if (!token) {
+      setRefreshing(false);
+      return;
+    }
+
+    loadDashboardData({ token, region: scopedRegion })
+      .then((data) => setDashboardData(data))
+      .catch((error: Error) => setErrorMessage(error.message))
+      .finally(() => setRefreshing(false));
+  }
+
+  if (!dashboardData) {
+    return (
+      <main className="dashboard-main">
+        <section className="scope-banner">
+          <div className="scope-copy">
+            <div>
+              <strong>{errorMessage ?? 'Loading dashboard data...'}</strong>
+              <span>Dashboard metrics are available only after a successful backend response.</span>
+            </div>
+          </div>
+          {errorMessage && (
+            <button className="primary-action" onClick={() => window.location.reload()}>
+              Retry
+            </button>
+          )}
+        </section>
+      </main>
+    );
   }
 
   return (
     <div className="dashboard-shell">
-      <Header role={role} roleKey={roleKey} setRoleKey={switchRole} />
       <Sidebar />
 
       <main className="dashboard-main">
@@ -186,7 +171,20 @@ export function DashboardShell() {
             </div>
           </div>
           <div className="toolbar-actions">
-            <span className="api-pill">{source === 'api' ? 'Live API' : 'Preview Data'}</span>
+            <label className="role-select">
+              <span>Role</span>
+              <select
+                value={roleKey}
+                onChange={(event) => switchRole(event.target.value as RoleKey)}
+              >
+                {(Object.keys(roles) as RoleKey[]).map((key) => (
+                  <option key={key} value={key}>
+                    {roles[key].label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <span className="api-pill">Live API</span>
             <span className="api-pill">{authMessage}</span>
             <button className="icon-button" onClick={refreshDashboard} title="Refresh dashboard">
               <RefreshCw size={18} className={refreshing ? 'spin' : ''} />
@@ -215,7 +213,7 @@ export function DashboardShell() {
             </div>
           </div>
           <div className="region-tabs">
-            {regionData.map((region) => {
+            {dashboardData.regions.map((region) => {
               const accessible = canAccessRegion(roleKey, region.key);
               const active = scopedRegion === region.key;
 
@@ -242,28 +240,28 @@ export function DashboardShell() {
         <section className="metric-grid">
           <MetricCard
             label="Total Students"
-            value={summary.totalStudents.toString()}
+               value={dashboardData.summary.totalStudents.toString()}
             caption="COUNT(DISTINCT students.id)"
             trend="+12% MoM"
             icon={<Users size={20} />}
           />
           <MetricCard
             label="Total Enrollments"
-            value={summary.totalEnrollments.toString()}
+               value={dashboardData.summary.totalEnrollments.toString()}
             caption="COUNT(enrollments.id)"
-            trend={`${(summary.totalEnrollments / summary.totalStudents).toFixed(2)} crs/student`}
+            trend={`${(dashboardData.summary.totalEnrollments / dashboardData.summary.totalStudents).toFixed(2)} crs/student`}
             icon={<GraduationCap size={20} />}
           />
           <MetricCard
             label="Consortium Rating"
-            value={`${summary.averageRating.toFixed(1)} / 5.0`}
+               value={`${dashboardData.summary.averageRating.toFixed(1)} / 5.0`}
             caption="Based on submitted ratings"
             trend="4-star median"
             icon={<Star size={20} />}
           />
           <MetricCard
             label="Net Fee Revenue"
-            value={formatCurrency(summary.netRevenue)}
+               value={formatCurrency(dashboardData.summary.netRevenue)}
             caption="SUM(fee_paid)"
             trend="+18.4% YoY"
             icon={<TrendingUp size={20} />}
@@ -279,7 +277,7 @@ export function DashboardShell() {
           >
             <div className="chart-stage">
               <ResponsiveContainer width="100%" height={320}>
-                <BarChart data={categoryData} margin={{ top: 18, right: 12, left: 0, bottom: 8 }}>
+                    <BarChart data={dashboardData.categoryRevenue} margin={{ top: 18, right: 12, left: 0, bottom: 8 }}>
                   <CartesianGrid stroke="#d3e4fe" strokeDasharray="4 4" vertical={false} />
                   <XAxis dataKey="category" tickLine={false} axisLine={false} />
                   <YAxis
@@ -289,7 +287,7 @@ export function DashboardShell() {
                   />
                   <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                   <Bar dataKey="revenue" radius={[8, 8, 2, 2]}>
-                    {categoryData.map((entry) => (
+                        {dashboardData.categoryRevenue.map((entry) => (
                       <Cell key={entry.category} fill={entry.color} />
                     ))}
                   </Bar>
@@ -297,7 +295,9 @@ export function DashboardShell() {
               </ResponsiveContainer>
             </div>
             <div className="category-strip">
-              {categoryData.map((item) => (
+                  {dashboardData.categoryRevenue.length === 0 ? (
+                    <EmptyState message="No category revenue data is available." />
+                  ) : dashboardData.categoryRevenue.map((item) => (
                 <article key={item.category} className="mini-card">
                   <span style={{ background: item.color }} />
                   <strong>{item.category}</strong>
@@ -317,7 +317,7 @@ export function DashboardShell() {
                 <small>retention</small>
               </div>
               <div className="status-list">
-                {completionData.map((item) => (
+                    {dashboardData.completionStatus.map((item) => (
                   <div key={item.label} className="status-row">
                     <span style={{ background: item.color }} />
                     <div>
@@ -344,7 +344,7 @@ export function DashboardShell() {
               </div>
             ) : (
               <div className="region-bars">
-                {regionData
+                    {dashboardData.regions
                   .filter((region) => region.key !== 'all')
                   .map((region) => (
                     <div key={region.key} className="region-bar">
@@ -356,7 +356,7 @@ export function DashboardShell() {
                       <div className="bar-track">
                         <span
                           style={{
-                            width: `${Math.round((region.revenue / regionData[0].revenue) * 100)}%`,
+                                width: `${Math.round((region.revenue / dashboardData.regions[0].revenue) * 100)}%`,
                           }}
                         />
                       </div>
@@ -373,7 +373,7 @@ export function DashboardShell() {
             action={<span className="endpoint-chip">GET /analytics/monthly-revenue</span>}
           >
             <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={monthlyData} margin={{ top: 18, right: 16, left: 0, bottom: 4 }}>
+                  <LineChart data={dashboardData.monthlyRevenue} margin={{ top: 18, right: 16, left: 0, bottom: 4 }}>
                 <CartesianGrid stroke="#d3e4fe" strokeDasharray="4 4" vertical={false} />
                 <XAxis dataKey="month" tickLine={false} axisLine={false} />
                 <YAxis
@@ -429,7 +429,13 @@ export function DashboardShell() {
                 </tr>
               </thead>
               <tbody>
-                {filteredCourses.map((course) => (
+                    {filteredCourses.length === 0 ? (
+                      <tr>
+                        <td colSpan={6}>
+                          <EmptyState message="No courses match the current filters." />
+                        </td>
+                      </tr>
+                    ) : filteredCourses.map((course) => (
                   <tr key={course.code}>
                     <td>
                       <div className="course-title">
@@ -463,7 +469,9 @@ export function DashboardShell() {
 
         <Card className="table-card" title="Drop-off Risk Watchlist" eyebrow="Direct backend endpoint">
           <div className="risk-list">
-            {dropOffData.map((risk) => (
+                {dashboardData.dropOffRisks.length === 0 ? (
+                  <EmptyState message="No drop-off risks were returned." />
+                ) : dashboardData.dropOffRisks.map((risk) => (
               <article key={`${risk.course}-${risk.region}`} className="risk-item">
                 <BookOpen size={18} />
                 <div>
@@ -480,108 +488,3 @@ export function DashboardShell() {
   );
 }
 
-function Header({
-  role,
-  roleKey,
-  setRoleKey,
-}: {
-  role: (typeof roles)[RoleKey];
-  roleKey: RoleKey;
-  setRoleKey: (role: RoleKey) => void;
-}) {
-  return (
-    <header className="topbar">
-      <div className="brand">
-        <span className="brand-mark">
-          <BarChart3 size={19} />
-        </span>
-        <strong>Strata EdAnalytics</strong>
-        <em>{role.label}</em>
-      </div>
-      <div className="topbar-right">
-        <div className="role-switcher">
-          {(Object.keys(roles) as RoleKey[]).map((key) => (
-            <button
-              key={key}
-              className={roleKey === key ? 'active' : ''}
-              onClick={() => setRoleKey(key)}
-            >
-              {roles[key].label}
-            </button>
-          ))}
-        </div>
-        <button className="icon-button" title="Notifications">
-          <Bell size={18} />
-        </button>
-        <button className="avatar-button" title={role.name}>
-          {role.initials}
-        </button>
-        <button className="icon-button" title="Logout">
-          <LogOut size={18} />
-        </button>
-      </div>
-    </header>
-  );
-}
-
-function Sidebar() {
-  const links = [
-    ['Overview Dashboard', LayoutDashboard],
-    ['Course Catalog', GraduationCap],
-    ['Student Roster', Users],
-    ['Revenue Reports', TrendingUp],
-    ['Role Permissions', ShieldCheck],
-  ] as const;
-
-  return (
-    <aside className="sidebar">
-      <div>
-        <div className="telemetry-card">
-          <span>Active Telemetry</span>
-          <strong>AY 2024-25 Q3</strong>
-        </div>
-        <nav>
-          {links.map(([label, Icon], index) => (
-            <a key={label} className={index === 0 ? 'active' : ''} href="#">
-              <Icon size={19} />
-              {label}
-            </a>
-          ))}
-        </nav>
-      </div>
-      <div className="node-card">
-        <Globe2 size={17} />
-        <span>Node: East-Cluster-09</span>
-        <b>ONLINE</b>
-      </div>
-    </aside>
-  );
-}
-
-function MetricCard({
-  label,
-  value,
-  caption,
-  trend,
-  icon,
-}: {
-  label: string;
-  value: string;
-  caption: string;
-  trend: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <Card className="metric-card">
-      <div className="metric-top">
-        <span>{label}</span>
-        {icon}
-      </div>
-      <div className="metric-value">
-        <strong>{value}</strong>
-        <em>{trend}</em>
-      </div>
-      <small>{caption}</small>
-    </Card>
-  );
-}

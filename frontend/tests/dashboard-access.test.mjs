@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   canAccessRegion,
-  getRegionSummary,
   resolveRegionForRole,
 } from '../lib/dashboard-data.js';
 
@@ -27,8 +26,3 @@ test('south manager is locked to south data', () => {
   assert.equal(resolveRegionForRole('south', 'north'), 'south');
 });
 
-test('region summaries expose the expected dashboard totals', () => {
-  assert.equal(getRegionSummary('north').students, 24);
-  assert.equal(getRegionSummary('south').revenue, 425000);
-  assert.equal(getRegionSummary('east').enrollments, 20);
-});

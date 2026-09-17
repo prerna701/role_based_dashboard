@@ -1,11 +1,12 @@
-import {
-  categoryRevenue,
-  completionStatus,
-  dropOffRisks,
-  monthlyRevenue,
-  popularCourses,
-  regions,
-} from './dashboard-data';
+import type {
+  CategoryRevenue,
+  CompletionStatus,
+  DashboardData,
+  DropOffRisk,
+  MonthlyRevenue,
+  PopularCourse,
+  RegionSummary,
+} from '@/types/analytics';
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
@@ -51,9 +52,9 @@ function regionCodeFromKey(region?: string): string | undefined {
   return region.charAt(0).toUpperCase() + region.slice(1).toLowerCase();
 }
 
-async function fetchJson<T>(path: string, options: RequestOptions): Promise<T | null> {
+async function fetchJson<T>(path: string, options: RequestOptions): Promise<T> {
   if (!options.token) {
-    return null;
+    throw new Error('You must be logged in to load dashboard data.');
   }
 
   const params = new URLSearchParams();
@@ -77,12 +78,16 @@ async function fetchJson<T>(path: string, options: RequestOptions): Promise<T | 
     });
 
     if (!response.ok) {
-      return null;
+      throw new Error(`Dashboard request failed with status ${response.status}.`);
     }
 
     return (await response.json()) as T;
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+
+    throw new Error('Unable to connect to the dashboard API.');
   }
 }
 
@@ -94,7 +99,7 @@ function unwrapData<T>(payload: unknown): T | null {
   return null;
 }
 
-function unwrapList<T>(payload: unknown): T[] | null {
+function unwrapList<T>(payload: unknown): T[] {
   if (Array.isArray(payload)) {
     return payload as T[];
   }
@@ -113,7 +118,7 @@ function unwrapList<T>(payload: unknown): T[] | null {
     }
   }
 
-  return null;
+  throw new Error('The analytics list response was invalid.');
 }
 
 type LoginPayload = {
@@ -138,8 +143,8 @@ type OverviewPayload = {
     averageRating: number;
     netRevenue: number;
   };
-  regions: typeof regions;
-  completionStatus: typeof completionStatus;
+  regions: RegionSummary[];
+  completionStatus: CompletionStatus[];
 };
 
 type CategoryRevenuePayload = {
@@ -147,13 +152,13 @@ type CategoryRevenuePayload = {
   enrollments: number;
   revenue: number;
   share: number;
-}[];
+};
 
 type MonthlyRevenuePayload = {
   month: string;
   enrollments: number;
   revenue: number;
-}[];
+};
 
 type DropOffPayload = {
   courseId: string;
@@ -163,7 +168,7 @@ type DropOffPayload = {
   droppedEnrollments: number;
   dropOffRate: number;
   revenueAtRisk: number;
-}[];
+};
 
 type PopularCoursesPayload = {
   courseId: string;
@@ -173,9 +178,25 @@ type PopularCoursesPayload = {
   averageRating: number;
   totalFees: number;
   completionRate: number;
-}[];
+};
 
-export async function loginAsRole(roleKey: RoleCredentialKey): Promise<LoginPayload | null> {
+function withAllRegions(
+  summary: DashboardData['summary'],
+  regionList: RegionSummary[],
+): RegionSummary[] {
+  return [
+    {
+      key: 'all',
+      label: 'All Regions',
+      students: summary.totalStudents,
+      enrollments: summary.totalEnrollments,
+      revenue: summary.netRevenue,
+    },
+    ...regionList.filter((region) => region.key !== 'all'),
+  ];
+}
+
+export async function loginAsRole(roleKey: RoleCredentialKey): Promise<LoginPayload> {
   const credentials = roleCredentials[roleKey];
 
   try {
@@ -188,7 +209,7 @@ export async function loginAsRole(roleKey: RoleCredentialKey): Promise<LoginPayl
     });
 
     if (!response.ok) {
-      return null;
+      throw new Error(`Login failed with status ${response.status}.`);
     }
 
     const responsePayload = (await response.json()) as ApiResponse<LoginPayload>;
@@ -198,12 +219,16 @@ export async function loginAsRole(roleKey: RoleCredentialKey): Promise<LoginPayl
     }
 
     return payload;
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+
+    throw new Error('Unable to connect to the authentication API.');
   }
 }
 
-export async function loadDashboardData(options: RequestOptions) {
+export async function loadDashboardData(options: RequestOptions): Promise<DashboardData> {
   const [overviewPayload, categoryPayload, dropOffPayload, monthlyPayload, coursesPayload] =
     await Promise.all([
       fetchJson('/analytics/overview', options),
@@ -214,20 +239,19 @@ export async function loadDashboardData(options: RequestOptions) {
     ]);
 
   const overview = unwrapData<OverviewPayload>(overviewPayload);
-  const categories = unwrapList<CategoryRevenuePayload[number]>(categoryPayload);
-  const dropOff = unwrapList<DropOffPayload[number]>(dropOffPayload);
-  const monthly = unwrapList<MonthlyRevenuePayload[number]>(monthlyPayload);
-  const courses = unwrapList<PopularCoursesPayload[number]>(coursesPayload);
+  const categories = unwrapList<CategoryRevenuePayload>(categoryPayload);
+  const dropOff = unwrapList<DropOffPayload>(dropOffPayload);
+  const monthly = unwrapList<MonthlyRevenuePayload>(monthlyPayload);
+  const courses = unwrapList<PopularCoursesPayload>(coursesPayload);
+
+  if (!overview) {
+    throw new Error('The analytics overview response was invalid.');
+  }
 
   return {
-    summary: overview?.summary ?? {
-      totalStudents: regions[0].students,
-      totalEnrollments: regions[0].enrollments,
-      averageRating: 3.8,
-      netRevenue: regions[0].revenue,
-    },
-    regions: overview?.regions ?? regions,
-    completionStatus: (overview?.completionStatus ?? completionStatus).map((item) => ({
+    summary: overview.summary,
+    regions: withAllRegions(overview.summary, overview.regions),
+    completionStatus: overview.completionStatus.map((item) => ({
       ...item,
       color:
         item.label === 'Completed'
@@ -236,33 +260,31 @@ export async function loadDashboardData(options: RequestOptions) {
             ? '#dc2626'
             : '#4f46e5',
     })),
-    categoryRevenue: (categories ?? categoryRevenue).map((item) => ({
+    categoryRevenue: categories.map((item) => ({
       ...item,
       color: categoryColors[item.category] ?? '#3525cd',
     })),
-    dropOffRisks: (dropOff ?? dropOffRisks).map((item) => ({
-      course: 'courseTitle' in item ? item.courseTitle : item.course,
-      region: 'region' in item ? item.region : 'Scoped',
-      dropped: 'droppedEnrollments' in item ? item.droppedEnrollments : item.dropped,
-      dropRate:
-        'dropOffRate' in item
-          ? Number((item.dropOffRate * 100).toFixed(1))
-          : item.dropRate,
+    dropOffRisks: dropOff.map((item) => ({
+      course: item.courseTitle,
+      region: 'Scoped',
+      dropped: item.droppedEnrollments,
+      dropRate: Number((item.dropOffRate * 100).toFixed(1)),
     })),
-    monthlyRevenue: monthly ?? monthlyRevenue,
-    popularCourses: (courses ?? popularCourses).map((course, index) => ({
+    monthlyRevenue: monthly.map((item) => ({
+      month: item.month,
+      enrollments: item.enrollments,
+      revenue: item.revenue,
+    })),
+    popularCourses: courses.map((course, index) => ({
       rank: index + 1,
       title: course.title,
-      code: 'courseId' in course ? course.courseId : course.code,
+      code: course.courseId,
       category: course.category,
       enrollments: course.enrollments,
-      rating: 'averageRating' in course ? course.averageRating : course.rating,
-      fees: 'totalFees' in course ? course.totalFees : course.fees,
+      rating: course.averageRating,
+      fees: course.totalFees,
       completionRate: course.completionRate,
     })),
-    source:
-      overviewPayload && categoryPayload && dropOffPayload && monthlyPayload && coursesPayload
-        ? 'api'
-        : 'preview',
-  } as const;
+    source: 'api',
+  };
 }

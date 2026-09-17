@@ -1,0 +1,210 @@
+.layout {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  /* Blue gradient as requested */
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);
+  font-family: 'Nunito Sans', Arial, Helvetica, sans-serif;
+  color: #ebebeb; /* from design system tokens */
+}
+
+.container {
+  width: 100%;
+  max-width: 440px;
+  background: #000000; /* surface.base */
+  border-radius: 16px; /* radius.md */
+  padding: 40px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.header {
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.title {
+  font-size: 22px; /* font.size.xl */
+  font-weight: 700;
+  color: #ffffff; /* text.inverse */
+  margin: 0 0 8px;
+}
+
+.subtitle {
+  font-size: 14px; /* font.size.md */
+  color: #b3b3b3; /* text.tertiary */
+  margin: 0;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ebebeb; /* text.primary */
+}
+
+.input {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 14px;
+  background: #0e0e0e; /* surface.muted */
+  border: 1px solid #303030; /* surface.strong */
+  border-radius: 5px; /* radius.sm */
+  color: #ffffff;
+  transition: all 130ms ease; /* motion.duration.instant */
+}
+
+.input:focus-visible {
+  outline: none;
+  border-color: #3b82f6; /* Blue highlight */
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+.inputError {
+  border-color: #ef4444; /* red */
+}
+
+.inputError:focus-visible {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.3);
+}
+
+.errorText {
+  font-size: 12px; /* font.size.sm */
+  color: #ef4444;
+  margin-top: 4px;
+}
+
+.formError {
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 5px;
+  color: #fca5a5;
+  font-size: 14px;
+  text-align: center;
+}
+
+.formActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+.rememberMe {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+.rememberMe label {
+  font-size: 14px;
+  color: #d0d0d0; /* text.secondary */
+  cursor: pointer;
+}
+
+.forgotPassword {
+  font-size: 14px;
+  font-weight: 600;
+  color: #60a5fa;
+  text-decoration: none;
+  transition: color 130ms ease;
+}
+
+.forgotPassword:hover,
+.forgotPassword:focus-visible {
+  color: #93c5fd;
+  text-decoration: underline;
+  outline: none;
+}
+
+.button {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  background: #3b82f6; /* Primary action */
+  color: #ffffff;
+  font-size: 16px; /* font.size.lg */
+  font-weight: 700;
+  border: none;
+  border-radius: 5px; /* radius.sm */
+  cursor: pointer;
+  transition: all 130ms ease;
+  position: relative;
+}
+
+.button:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+}
+
+.button:disabled {
+  background: #1d1d1d; /* surface.raised */
+  color: #b3b3b3;
+  cursor: not-allowed;
+}
+
+.spinner {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #ffffff;
+  animation: spin 0.8s linear infinite;
+}
+
+.hiddenText {
+  opacity: 0;
+}
+
+.footerText {
+  text-align: center;
+  font-size: 14px;
+  color: #b3b3b3;
+  margin-top: 16px;
+}
+
+.link {
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 24px;
+  }
+}

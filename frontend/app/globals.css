@@ -52,24 +52,7 @@ button:disabled {
   min-height: 100vh;
 }
 
-.topbar {
-  position: fixed;
-  z-index: 30;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  background: var(--surface-strong);
-  color: #eaf1ff;
-  box-shadow: var(--shadow-sm);
-}
-
 .brand,
-.topbar-right,
 .persona,
 .toolbar-actions,
 .scope-copy,
@@ -80,90 +63,31 @@ button:disabled {
   align-items: center;
 }
 
-.brand {
-  gap: 12px;
-}
-
-.brand strong {
-  font-size: 17px;
-}
-
-.brand em {
-  padding: 4px 8px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #dae2fd;
-  font-size: 11px;
-  font-style: normal;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.brand-mark {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  place-items: center;
-  border-radius: 8px;
-  background: var(--primary);
-  color: white;
-}
-
-.topbar-right {
-  gap: 10px;
-}
-
-.role-switcher {
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.role-switcher button,
 .region-tabs button,
 .primary-action,
-.icon-button,
-.avatar-button {
+.icon-button {
   border: 0;
   border-radius: 8px;
 }
 
-.role-switcher button {
-  padding: 6px 9px;
-  background: transparent;
-  color: #eaf1ff;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.role-switcher button.active,
 .primary-action {
   background: var(--primary-2);
   color: white;
 }
 
-.icon-button,
-.avatar-button {
+.icon-button {
   display: grid;
   width: 36px;
   height: 36px;
   place-items: center;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-low);
   color: inherit;
-}
-
-.avatar-button {
-  background: var(--primary);
-  font-size: 12px;
-  font-weight: 800;
 }
 
 .sidebar {
   position: fixed;
   z-index: 20;
-  top: 64px;
+  top: 0;
   bottom: 0;
   left: 0;
   width: 264px;
@@ -245,13 +169,13 @@ button:disabled {
 
 .dashboard-main {
   min-height: 100vh;
-  padding: 88px 24px 36px 288px;
+  padding: 24px 24px 36px 288px;
 }
 
 .scope-toolbar {
   position: sticky;
   z-index: 15;
-  top: 76px;
+  top: 12px;
   display: flex;
   gap: 16px;
   align-items: center;
@@ -315,6 +239,27 @@ button:disabled {
 
 .toolbar-actions {
   gap: 9px;
+}
+
+.role-select {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.role-select select {
+  min-width: 130px;
+  padding: 7px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .primary-action {
@@ -795,17 +740,12 @@ button:disabled {
 }
 
 @media (max-width: 860px) {
-  .topbar {
-    padding: 0 12px;
-  }
-
-  .role-switcher,
   .sidebar {
     display: none;
   }
 
   .dashboard-main {
-    padding: 82px 12px 24px;
+    padding: 12px 12px 24px;
   }
 
   .scope-toolbar,
