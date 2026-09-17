@@ -29,12 +29,33 @@ export default function CoursesPage() {
   useEffect(() => {
     if (!token || !isAuthenticated) return;
 
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
-    loadPopularCourses({ token, region: scopedRegion, page: 1, limit: 50 })
-      .then(setCourses)
-      .catch((requestError: Error) => setError(requestError.message))
-      .finally(() => setLoading(false));
+    loadPopularCourses({
+      token,
+      region: scopedRegion,
+      page: 1,
+      limit: 50,
+      signal: controller.signal,
+    })
+      .then((data) => {
+        if (!controller.signal.aborted) {
+          setCourses(data);
+        }
+      })
+      .catch((requestError: Error) => {
+        if (requestError.name !== 'AbortError' && !controller.signal.aborted) {
+          setError(requestError.message);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+
+    return () => controller.abort();
   }, [isAuthenticated, scopedRegion, token]);
 
   const categories = useMemo(

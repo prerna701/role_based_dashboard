@@ -39,12 +39,27 @@ export default function StudentsPage() {
   useEffect(() => {
     if (!token || !isAuthenticated) return;
 
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
-    loadStudents({ token, region: scopedRegion, page, limit: 10, search })
-      .then(setStudentsPage)
-      .catch((requestError: Error) => setError(requestError.message))
-      .finally(() => setLoading(false));
+    loadStudents({ token, region: scopedRegion, page, limit: 10, search, signal: controller.signal })
+      .then((data) => {
+        if (!controller.signal.aborted) {
+          setStudentsPage(data);
+        }
+      })
+      .catch((requestError: Error) => {
+        if (requestError.name !== 'AbortError' && !controller.signal.aborted) {
+          setError(requestError.message);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+
+    return () => controller.abort();
   }, [isAuthenticated, page, scopedRegion, search, token]);
 
   const completionTotals = useMemo(() => {

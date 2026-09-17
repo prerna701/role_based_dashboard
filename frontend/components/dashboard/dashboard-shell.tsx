@@ -1,16 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import {
-  ArrowRight,
-  BookOpen,
-  GraduationCap,
-  Lock,
-  ShieldCheck,
-  Star,
-  TrendingUp,
-  Users,
-} from 'lucide-react';
+import { Lock, ShieldCheck } from 'lucide-react';
 import {
   CartesianGrid,
   Line,
@@ -20,65 +10,34 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { DataTable } from '@/components/ui/data-table';
 import { CourseTable } from '@/components/courses/course-table';
-import { useAuthSession } from '@/components/providers/auth-session-provider';
-import { loadDashboardData } from '@/lib/analytics-api';
-import {
-  canAccessRegion,
-  formatCurrency,
-} from '@/lib/dashboard-data';
-import {
-  formatDisplayDate,
-  getCourseEndDate,
-} from '@/lib/formatters';
-import { EmptyState } from './empty-state';
+import { canAccessRegion, formatCurrency } from '@/lib/dashboard-data';
 import { LoadingState } from './loading-state';
-import { MetricCard } from './metric-card';
 import { RevenueByCategoryWidget } from './revenue-by-category-widget';
 import { Sidebar } from './sidebar';
-import type { DashboardData } from '@/types/analytics';
+import { useDashboardData } from '@/hooks/useDashboardData';
+import { DashboardMetrics } from './dashboard-metrics';
+import { StudentSnapshotTable } from './student-snapshot-table';
+import { DropOffWatchlist } from './drop-off-watchlist';
 
 export function DashboardShell() {
   const {
-    token,
+    dashboardData,
+    errorMessage,
+    query,
+    setQuery,
+    categoryFilter,
+    setCategoryFilter,
+    isRegionalRole,
     role,
     roleKey,
     scopedRegion,
     changeRegion,
-    isAuthenticated,
-  } = useAuthSession();
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-
-  const isRegionalRole = roleKey !== 'admin';
-
-  useEffect(() => {
-    if (!token || !isAuthenticated) return;
-
-    setErrorMessage(null);
-    loadDashboardData({ token, region: scopedRegion })
-      .then(setDashboardData)
-      .catch((error: Error) => setErrorMessage(error.message));
-  }, [isAuthenticated, scopedRegion, token]);
-
-  const filteredCourses = useMemo(() => {
-    return (dashboardData?.popularCourses ?? []).filter((course) => {
-      const matchesSearch = course.title.toLowerCase().includes(query.toLowerCase());
-      const matchesCategory =
-        categoryFilter === 'all' ||
-        course.category.toLowerCase().includes(categoryFilter.toLowerCase());
-      return matchesSearch && matchesCategory;
-    });
-  }, [categoryFilter, dashboardData?.popularCourses, query]);
-
-  const categoryOptions = useMemo(() => {
-    return Array.from(new Set((dashboardData?.popularCourses ?? []).map((course) => course.category)));
-  }, [dashboardData?.popularCourses]);
+    filteredCourses,
+    categoryOptions,
+    token,
+  } = useDashboardData();
 
   function handleRegionClick(regionKey: string) {
     if (canAccessRegion(roleKey, regionKey)) {
@@ -158,36 +117,7 @@ export function DashboardShell() {
           </div>
         </section>
 
-        <section className="metric-grid">
-          <MetricCard
-            label="Total Students"
-               value={dashboardData.summary.totalStudents.toString()}
-            caption="COUNT(DISTINCT students.id)"
-            trend="+12% MoM"
-            icon={<Users size={20} />}
-          />
-          <MetricCard
-            label="Total Enrollments"
-               value={dashboardData.summary.totalEnrollments.toString()}
-            caption="COUNT(enrollments.id)"
-            trend={`${(dashboardData.summary.totalEnrollments / dashboardData.summary.totalStudents).toFixed(2)} crs/student`}
-            icon={<GraduationCap size={20} />}
-          />
-          <MetricCard
-            label="Consortium Rating"
-               value={`${dashboardData.summary.averageRating.toFixed(1)} / 5.0`}
-            caption="Based on submitted ratings"
-            trend="4-star median"
-            icon={<Star size={20} />}
-          />
-          <MetricCard
-            label="Net Fee Revenue"
-               value={formatCurrency(dashboardData.summary.netRevenue)}
-            caption="SUM(fee_paid)"
-            trend="+18.4% YoY"
-            icon={<TrendingUp size={20} />}
-          />
-        </section>
+        <DashboardMetrics summary={dashboardData.summary} />
 
         <section className="dashboard-grid">
           <RevenueByCategoryWidget
@@ -204,7 +134,7 @@ export function DashboardShell() {
                 <small>retention</small>
               </div>
               <div className="status-list">
-                    {dashboardData.completionStatus.map((item) => (
+                {dashboardData.completionStatus.map((item) => (
                   <div key={item.label} className="status-row">
                     <span style={{ background: item.color }} />
                     <div>
@@ -231,7 +161,7 @@ export function DashboardShell() {
               </div>
             ) : (
               <div className="region-bars">
-                    {dashboardData.regions
+                {dashboardData.regions
                   .filter((region) => region.key !== 'all')
                   .map((region) => (
                     <div key={region.key} className="region-bar">
@@ -243,7 +173,7 @@ export function DashboardShell() {
                       <div className="bar-track">
                         <span
                           style={{
-                                width: `${Math.round((region.revenue / dashboardData.regions[0].revenue) * 100)}%`,
+                            width: `${Math.round((region.revenue / dashboardData.regions[0].revenue) * 100)}%`,
                           }}
                         />
                       </div>
@@ -260,7 +190,7 @@ export function DashboardShell() {
             action={<span className="endpoint-chip">GET /analytics/monthly-revenue</span>}
           >
             <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={dashboardData.monthlyRevenue} margin={{ top: 18, right: 16, left: 0, bottom: 4 }}>
+              <LineChart data={dashboardData.monthlyRevenue} margin={{ top: 18, right: 16, left: 0, bottom: 4 }}>
                 <CartesianGrid stroke="#d3e4fe" strokeDasharray="4 4" vertical={false} />
                 <XAxis dataKey="month" tickLine={false} axisLine={false} />
                 <YAxis
@@ -281,76 +211,7 @@ export function DashboardShell() {
           </Card>
         </section>
 
-        <Card
-          className="table-card student-preview-card"
-          title="Student Enrollment Snapshot"
-          eyebrow="Live backend data"
-        >
-          {dashboardData.students.length === 0 ? (
-            <EmptyState message="No students were returned for this scope." />
-          ) : (
-            <DataTable className="student-snapshot-table" minWidth={980}>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Courses Enrolled</th>
-                  <th>Starting Date</th>
-                  <th>Ending Date</th>
-                  <th>Completion</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dashboardData.students.slice(0, 10).map((student) => {
-                  const sortedCourses = [...student.courses].sort(
-                    (left, right) =>
-                      new Date(left.enrolledOn).getTime() -
-                      new Date(right.enrolledOn).getTime(),
-                  );
-                  const firstCourse = sortedCourses[0];
-                  const finalCourse = sortedCourses.reduce<Date | null>(
-                    (latestDate, course) => {
-                      const endDate = getCourseEndDate(
-                        course.enrolledOn,
-                        course.durationWeeks,
-                      );
-
-                      return !latestDate || endDate > latestDate
-                        ? endDate
-                        : latestDate;
-                    },
-                    null,
-                  );
-
-                  return (
-                    <tr key={student.studentId}>
-                      <td>
-                        <div className="student-table-name">
-                          <strong>{student.name}</strong>
-                          <small>{student.studentId}</small>
-                        </div>
-                      </td>
-                      <td>{student.courses.length}</td>
-                      <td>{formatDisplayDate(firstCourse?.enrolledOn)}</td>
-                      <td>{finalCourse ? formatDisplayDate(finalCourse.toISOString()) : 'Not available'}</td>
-                      <td>
-                        <div className="completion-summary table-completion-summary">
-                          <span className="status-completed">{student.completion.completed} done</span>
-                          <span className="status-progress">{student.completion.inProgress} active</span>
-                          <span className="status-dropped">{student.completion.dropped} dropped</span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </DataTable>
-          )}
-          <div className="card-footer-action">
-            <Button href="/students" variant="secondary">
-              Read more <ArrowRight size={15} />
-            </Button>
-          </div>
-        </Card>
+        <StudentSnapshotTable students={dashboardData.students} />
 
         <Card className="table-card" title="Most Popular Courses by Enrollment Count">
           <CourseTable
@@ -363,22 +224,7 @@ export function DashboardShell() {
           />
         </Card>
 
-        <Card className="table-card" title="Drop-off Risk Watchlist" eyebrow="Direct backend endpoint">
-          <div className="risk-list">
-                {dashboardData.dropOffRisks.length === 0 ? (
-                  <EmptyState message="No drop-off risks were returned." />
-                ) : dashboardData.dropOffRisks.map((risk) => (
-              <article key={`${risk.course}-${risk.region}`} className="risk-item">
-                <BookOpen size={18} />
-                <div>
-                  <strong>{risk.course}</strong>
-                  <span>{risk.region} region</span>
-                </div>
-                <b>{risk.dropRate}% drop rate</b>
-              </article>
-            ))}
-          </div>
-        </Card>
+        <DropOffWatchlist dropOffRisks={dashboardData.dropOffRisks} />
       </main>
     </div>
   );

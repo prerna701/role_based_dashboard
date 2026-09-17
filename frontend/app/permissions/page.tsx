@@ -21,13 +21,28 @@ export default function PermissionsPage() {
   useEffect(() => {
     if (!token || !isAuthenticated) return;
 
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
 
-    loadOverview({ token, region: scopedRegion })
-      .then((data) => setOverview(data.summary))
-      .catch((requestError: Error) => setError(requestError.message))
-      .finally(() => setLoading(false));
+    loadOverview({ token, region: scopedRegion, signal: controller.signal })
+      .then((data) => {
+        if (!controller.signal.aborted) {
+          setOverview(data.summary);
+        }
+      })
+      .catch((requestError: Error) => {
+        if (requestError.name !== 'AbortError' && !controller.signal.aborted) {
+          setError(requestError.message);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+
+    return () => controller.abort();
   }, [isAuthenticated, scopedRegion, token]);
 
   return (

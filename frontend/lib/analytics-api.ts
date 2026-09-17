@@ -15,6 +15,7 @@ export const API_BASE_URL =
 
 type RequestOptions = {
   token?: string | null;
+  signal?: AbortSignal;
   region?: string;
   page?: number;
   limit?: number;
@@ -69,7 +70,14 @@ async function fetchJson<T>(path: string, options: RequestOptions): Promise<T> {
       headers: {
         Authorization: `Bearer ${options.token}`,
       },
+      signal: options.signal,
     });
+
+    if (response.status === 401) {
+      clearStoredAuthSession();
+      window.location.replace('/login');
+      throw new Error('Your session expired. Please sign in again.');
+    }
 
     if (!response.ok) {
       throw new Error(`Dashboard request failed with status ${response.status}.`);
@@ -296,6 +304,31 @@ export async function loginWithEmail(
     }
 
     throw new Error('Unable to connect to the authentication API.');
+  }
+}
+
+export async function logoutApi(): Promise<void> {
+  const token = getStoredAccessToken();
+  if (!token) {
+    clearStoredAuthSession();
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok && response.status !== 401) {
+      console.error('Logout request failed');
+    }
+  } catch (error) {
+    console.error('Unable to connect to the authentication API during logout.', error);
+  } finally {
+    clearStoredAuthSession();
   }
 }
 

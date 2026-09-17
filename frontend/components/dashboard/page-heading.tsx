@@ -16,7 +16,7 @@ export function PageHeading({
   return (
     <div className="page-heading">
       <div>
-        <Button className="back-link" href="/" variant="ghost">
+        <Button className="back-link button-secondary" href="/" variant="secondary">
           <ArrowLeft size={16} /> Back to dashboard
         </Button>
         <p className="card-eyebrow">{eyebrow}</p>

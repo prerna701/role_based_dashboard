@@ -38,18 +38,37 @@ export default function RevenuePage() {
   useEffect(() => {
     if (!token || !isAuthenticated) return;
 
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
     Promise.all([
-      loadRevenueByCategory({ token, region: scopedRegion }),
-      loadMonthlyRevenue({ token, region: scopedRegion, page: 1, limit: 12 }),
+      loadRevenueByCategory({ token, region: scopedRegion, signal: controller.signal }),
+      loadMonthlyRevenue({
+        token,
+        region: scopedRegion,
+        page: 1,
+        limit: 12,
+        signal: controller.signal,
+      }),
     ])
       .then(([categories, monthly]) => {
-        setCategoryRevenue(categories);
-        setMonthlyRevenue(monthly);
+        if (!controller.signal.aborted) {
+          setCategoryRevenue(categories);
+          setMonthlyRevenue(monthly);
+        }
       })
-      .catch((requestError: Error) => setError(requestError.message))
-      .finally(() => setLoading(false));
+      .catch((requestError: Error) => {
+        if (requestError.name !== 'AbortError' && !controller.signal.aborted) {
+          setError(requestError.message);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+
+    return () => controller.abort();
   }, [isAuthenticated, scopedRegion, token]);
 
   return (

@@ -63,12 +63,27 @@ export function RevenueByCategoryWidget({
       return;
     }
 
+    const controller = new AbortController();
     setIsLoading(true);
     setErrorMessage(null);
-    loadRevenueByCategory({ token, region: scopedRegion })
-      .then(setCategoryRevenue)
-      .catch((error: Error) => setErrorMessage(error.message))
-      .finally(() => setIsLoading(false));
+    loadRevenueByCategory({ token, region: scopedRegion, signal: controller.signal })
+      .then((data) => {
+        if (!controller.signal.aborted) {
+          setCategoryRevenue(data);
+        }
+      })
+      .catch((error: Error) => {
+        if (error.name !== 'AbortError' && !controller.signal.aborted) {
+          setErrorMessage(error.message);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => controller.abort();
   }, [scopedRegion, token]);
 
   function handleRegionChange(region: string) {
