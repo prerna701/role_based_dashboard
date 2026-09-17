@@ -22,13 +22,14 @@ export function MonthlyRevenueChart({ data }: MonthlyRevenueChartProps) {
       eyebrow="GET /analytics/monthly-revenue"
     >
       <ResponsiveContainer width="100%" height={280}>
-        <LineChart data={data} margin={{ top: 18, right: 16, left: 0, bottom: 4 }}>
+        <LineChart data={data} margin={{ top: 18, right: 16, left: 10, bottom: 4 }}>
           <CartesianGrid stroke="#d3e4fe" strokeDasharray="4 4" vertical={false} />
           <XAxis dataKey="month" tickLine={false} axisLine={false} />
           <YAxis
             tickFormatter={(value) => `Rs ${Number(value) / 1000}k`}
             tickLine={false}
             axisLine={false}
+            width={80}
           />
           <Tooltip formatter={(value) => formatCurrency(Number(value))} />
           <Line
