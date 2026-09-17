@@ -64,4 +64,23 @@ describe('RegionScopeService', () => {
       ),
     ).toThrow(ForbiddenException);
   });
+
+  it('blocks a North manager from requesting East data', () => {
+    expect(() =>
+      service.resolveForUser(makeUser(RoleEnum.regionManager, 'North'), 'East'),
+    ).toThrow(
+      'You are not allowed to access East region data. Your account is scoped to North.',
+    );
+  });
+
+  it('blocks a South manager from requesting North data', () => {
+    expect(() =>
+      service.resolveForUser(
+        makeUser(RoleEnum.regionManager, 'South'),
+        'North',
+      ),
+    ).toThrow(
+      'You are not allowed to access North region data. Your account is scoped to South.',
+    );
+  });
 });

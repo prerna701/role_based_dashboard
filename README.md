@@ -1,6 +1,60 @@
 # Role-Based Dashboard
 
-## Login credentials
+Full-stack take-home project for a role-based learning-platform dashboard.
+
+The backend is built with NestJS, PostgreSQL, TypeORM migrations, JWT auth, and
+database-backed region scoping. The frontend scaffold exists in `frontend/` and
+can be completed after the backend.
+
+## Prerequisites
+
+- Node.js 18+ recommended
+- npm 8+
+- Docker Desktop
+- Host port `5436` available for PostgreSQL
+
+## Setup
+
+Start Postgres:
+
+```bash
+docker compose up -d postgres
+```
+
+Install and prepare the backend:
+
+```bash
+cd backend
+npm install
+npm run migration:run
+npm run seed:assessment
+npm run start:dev
+```
+
+Backend runs on:
+
+```text
+http://localhost:3001
+```
+
+API prefix/version means routes start with:
+
+```text
+/api/v1
+```
+
+Frontend scaffold:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Postgres is published on host port `5436`. The assessment `.env` files are
+committed intentionally so the project can run as-is.
+
+## Login Credentials
 
 Use `POST /api/v1/auth/email/login`.
 
@@ -10,27 +64,18 @@ Use `POST /api/v1/auth/email/login`.
 | North Manager | `north.manager@dashboard.test` | `North@123` | North only  |
 | South Manager | `south.manager@dashboard.test` | `South@123` | South only  |
 
-Managers are scoped on the backend from the authenticated database user. If a
-North Manager requests South or East data directly through curl/Postman, the API
-must return `403 Forbidden` with a clear not-allowed message.
-
-## Database
-
-```bash
-docker compose up -d postgres
-cd backend
-npm run migration:run
-npm run seed:assessment
-```
-
-Postgres is published on host port `5436`.
-
 ## API
 
 Login:
 
 ```http
 POST /api/v1/auth/email/login
+Content-Type: application/json
+
+{
+  "email": "admin@dashboard.test",
+  "password": "Admin@123"
+}
 ```
 
 Mandatory widget endpoint:
@@ -49,6 +94,96 @@ Response:
 }
 ```
 
-For Admin, omit `region` to return all regions. For managers, omitting `region`
-returns their own region. If a North Manager requests `region=South` or
-`region=East`, the backend returns `403 Forbidden`.
+Extra insight endpoints:
+
+```http
+GET /api/v1/analytics/drop-off-by-course?page=1&limit=10&region=North
+Authorization: Bearer <token>
+```
+
+```http
+GET /api/v1/analytics/monthly-revenue?page=1&limit=10&region=North
+Authorization: Bearer <token>
+```
+
+Paginated endpoints return:
+
+```json
+{
+  "data": [],
+  "meta": {
+    "region": "North",
+    "page": 1,
+    "limit": 10,
+    "total": 12,
+    "totalPages": 2
+  }
+}
+```
+
+## Role Scoping
+
+Managers are scoped on the backend from the authenticated database user. The
+frontend never decides what a user can see.
+
+- Admin with no `region`: all regions.
+- Admin with `region=North`, `South`, or `East`: that region.
+- North Manager with no `region`: North only.
+- South Manager with no `region`: South only.
+- North Manager requesting `region=South` or `region=East`: `403 Forbidden`.
+- South Manager requesting `region=North` or `region=East`: `403 Forbidden`.
+
+This also holds for direct curl/Postman calls because every analytics endpoint
+uses `RegionScopeService` before querying data.
+
+## Data Model
+
+The source JSON is normalized into:
+
+- `regions`
+- `students`
+- `categories`
+- `instructors`
+- `courses`
+- `enrollments`
+- `enrollment_facts` view
+
+Important modeling choices:
+
+- `fee_paid` is stored on `enrollments`, not `courses`, because the same course
+  can have different paid fees.
+- `regions` is a table because the dataset includes East even though only North
+  and South managers exist.
+- Source IDs like `S1` and `C12` are stored as `external_id`; joins use database
+  primary keys.
+- Student names are not unique because duplicate names exist in the dataset.
+- `enrollment_facts` centralizes the analytics join path so new widgets reuse
+  the same region axis.
+
+More detail is in `backend/src/database/DATABASE_PLAN.md`.
+
+## Tests
+
+```bash
+cd backend
+npm test -- region-scope.service.spec.ts
+npm test -- analytics.service.spec.ts
+npm run build
+```
+
+The tests cover:
+
+- Admin all-region access.
+- Admin region filtering.
+- Manager default own-region scope.
+- North/South manager cross-region denial.
+- Unknown region validation.
+- Scoped analytics queries and paginated insight responses.
+
+## Working With AI
+
+AI helped draft the schema, seed flow, and scoped analytics query patterns. One
+thing I had to catch and correct was access-control behavior: simply filtering in
+the frontend or trusting a requested `region` query parameter would fail the
+direct API-call requirement. The final backend resolves scope from the
+authenticated database user first, then queries with that resolved scope.

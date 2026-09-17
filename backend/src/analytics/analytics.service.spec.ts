@@ -101,4 +101,90 @@ describe('AnalyticsService', () => {
     ).rejects.toThrow(ForbiddenException);
     expect(dataSource.query).not.toHaveBeenCalled();
   });
+
+  it('returns paginated drop-off insights scoped by region', async () => {
+    regionScopeService.resolveForUserId.mockResolvedValue({
+      user: { id: 2 },
+      regionCode: 'South',
+    });
+    dataSource.query
+      .mockResolvedValueOnce([{ '?column?': 1 }])
+      .mockResolvedValueOnce([
+        {
+          courseId: 'C5',
+          courseTitle: 'UI Design Basics',
+          category: 'Design',
+          enrollments: 7,
+          droppedEnrollments: 3,
+          dropOffRate: '0.4286',
+          revenueAtRisk: '10300.00',
+        },
+      ])
+      .mockResolvedValueOnce([{ total: 12 }]);
+
+    const result = await service.getDropOffByCourse(2, {
+      region: 'South',
+      page: 2,
+      limit: 5,
+    });
+
+    expect(dataSource.query).toHaveBeenNthCalledWith(2, expect.any(String), [
+      'South',
+      5,
+      5,
+    ]);
+    expect(result).toEqual({
+      data: [
+        {
+          courseId: 'C5',
+          courseTitle: 'UI Design Basics',
+          category: 'Design',
+          enrollments: 7,
+          droppedEnrollments: 3,
+          dropOffRate: 0.4286,
+          revenueAtRisk: 10300,
+        },
+      ],
+      meta: {
+        region: 'South',
+        page: 2,
+        limit: 5,
+        total: 12,
+        totalPages: 3,
+      },
+    });
+  });
+
+  it('returns paginated monthly revenue scoped by region', async () => {
+    regionScopeService.resolveForUserId.mockResolvedValue({
+      user: { id: 1 },
+      regionCode: null,
+    });
+    dataSource.query
+      .mockResolvedValueOnce([
+        { month: '2026-01', enrollments: 15, revenue: '88000.00' },
+      ])
+      .mockResolvedValueOnce([{ total: 6 }]);
+
+    const result = await service.getMonthlyRevenue(1, {
+      page: 1,
+      limit: 10,
+    });
+
+    expect(dataSource.query).toHaveBeenNthCalledWith(1, expect.any(String), [
+      null,
+      10,
+      0,
+    ]);
+    expect(result).toEqual({
+      data: [{ month: '2026-01', enrollments: 15, revenue: 88000 }],
+      meta: {
+        region: null,
+        page: 1,
+        limit: 10,
+        total: 6,
+        totalPages: 1,
+      },
+    });
+  });
 });
