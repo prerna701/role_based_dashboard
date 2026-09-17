@@ -110,6 +110,206 @@ button:disabled {
   box-shadow: var(--shadow-sm);
 }
 
+.text-action,
+.back-link {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.loading-state {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.loading-state svg {
+  color: var(--primary-2);
+}
+
+.student-preview-list,
+.student-list {
+  display: grid;
+  gap: 10px;
+}
+
+.student-preview-row,
+.student-card-heading,
+.course-detail {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.student-preview-row {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-low);
+}
+
+.student-preview-row div,
+.student-card-heading div,
+.course-detail div {
+  display: grid;
+  gap: 4px;
+}
+
+.student-preview-row span,
+.student-card-heading span,
+.course-detail span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.completion-summary,
+.course-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  justify-content: flex-end;
+}
+
+.status-completed,
+.status-progress,
+.status-dropped,
+.status-pill {
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.status-completed,
+.status-completed.status-pill {
+  background: rgba(0, 110, 76, 0.12);
+  color: var(--success);
+}
+
+.status-progress,
+.status-in_progress {
+  background: rgba(79, 70, 229, 0.12);
+  color: var(--primary-2);
+}
+
+.status-dropped,
+.status-dropped.status-pill {
+  background: rgba(186, 26, 26, 0.12);
+  color: var(--danger);
+}
+
+.students-page h1 {
+  margin: 8px 0 6px;
+  font-size: clamp(28px, 4vw, 48px);
+}
+
+.page-heading {
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.page-description {
+  max-width: 680px;
+  margin: 0;
+  color: var(--muted);
+}
+
+.student-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.completion-card {
+  margin-bottom: 16px;
+}
+
+.completion-bars {
+  display: grid;
+  gap: 14px;
+}
+
+.completion-bar-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 90px;
+  gap: 12px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.completion-bar-row > span {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-mid);
+}
+
+.completion-bar-row i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary-2);
+}
+
+.completion-bar-row .bar-completed { background: var(--success); }
+.completion-bar-row .bar-dropped { background: var(--danger); }
+
+.student-card {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-low);
+}
+
+.student-card h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.course-detail-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.course-detail {
+  padding: 10px;
+  border-radius: 7px;
+  background: var(--surface);
+}
+
+.pagination {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.pagination button {
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.pagination button:disabled {
+  opacity: 0.45;
+}
+
 .telemetry-card {
   display: grid;
   gap: 4px;
@@ -760,6 +960,18 @@ button:disabled {
   .category-strip,
   .risk-list {
     grid-template-columns: 1fr;
+  }
+
+  .page-heading,
+  .student-card-heading,
+  .course-detail {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .completion-bar-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
   }
 
   .status-layout {

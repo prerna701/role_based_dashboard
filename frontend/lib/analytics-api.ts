@@ -6,6 +6,7 @@ import type {
   MonthlyRevenue,
   PopularCourse,
   RegionSummary,
+  StudentsPage,
 } from '@/types/analytics';
 
 export const API_BASE_URL =
@@ -16,6 +17,7 @@ type RequestOptions = {
   region?: string;
   page?: number;
   limit?: number;
+  search?: string;
 };
 
 const roleCredentials = {
@@ -67,6 +69,9 @@ async function fetchJson<T>(path: string, options: RequestOptions): Promise<T> {
   }
   if (options.limit) {
     params.set('limit', String(options.limit));
+  }
+  if (options.search) {
+    params.set('search', options.search);
   }
 
   try {
@@ -180,6 +185,8 @@ type PopularCoursesPayload = {
   completionRate: number;
 };
 
+type StudentsPayload = StudentsPage['data'][number];
+
 function withAllRegions(
   summary: DashboardData['summary'],
   regionList: RegionSummary[],
@@ -229,13 +236,14 @@ export async function loginAsRole(roleKey: RoleCredentialKey): Promise<LoginPayl
 }
 
 export async function loadDashboardData(options: RequestOptions): Promise<DashboardData> {
-  const [overviewPayload, categoryPayload, dropOffPayload, monthlyPayload, coursesPayload] =
+  const [overviewPayload, categoryPayload, dropOffPayload, monthlyPayload, coursesPayload, studentsPayload] =
     await Promise.all([
       fetchJson('/analytics/overview', options),
       fetchJson('/analytics/revenue-by-category', options),
       fetchJson('/analytics/drop-off-by-course', { ...options, page: 1, limit: 5 }),
       fetchJson('/analytics/monthly-revenue', { ...options, page: 1, limit: 12 }),
       fetchJson('/analytics/popular-courses', { ...options, page: 1, limit: 10 }),
+      fetchJson('/analytics/students', { ...options, page: 1, limit: 5 }),
     ]);
 
   const overview = unwrapData<OverviewPayload>(overviewPayload);
@@ -243,6 +251,7 @@ export async function loadDashboardData(options: RequestOptions): Promise<Dashbo
   const dropOff = unwrapList<DropOffPayload>(dropOffPayload);
   const monthly = unwrapList<MonthlyRevenuePayload>(monthlyPayload);
   const courses = unwrapList<PopularCoursesPayload>(coursesPayload);
+  const students = unwrapList<StudentsPayload>(studentsPayload);
 
   if (!overview) {
     throw new Error('The analytics overview response was invalid.');
@@ -285,6 +294,25 @@ export async function loadDashboardData(options: RequestOptions): Promise<Dashbo
       fees: course.totalFees,
       completionRate: course.completionRate,
     })),
+    students,
     source: 'api',
   };
+}
+
+export async function loadStudents(options: RequestOptions): Promise<StudentsPage> {
+  const payload = await fetchJson('/analytics/students', options);
+  const data = unwrapList<StudentsPayload>(payload);
+  const meta = (payload as { meta?: StudentsPage['meta'] }).meta;
+
+  if (!meta) {
+    throw new Error('The students pagination response was invalid.');
+  }
+
+  return { data, meta };
+}
+
+export function getStoredAccessToken(): string | null {
+  return typeof window === 'undefined'
+    ? null
+    : window.localStorage.getItem('accessToken');
 }

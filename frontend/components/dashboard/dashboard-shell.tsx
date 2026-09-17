@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   BookOpen,
   Download,
+  ArrowRight,
   GraduationCap,
   Lock,
   RefreshCw,
@@ -37,6 +38,7 @@ import {
   roles,
 } from '@/lib/dashboard-data';
 import { EmptyState } from './empty-state';
+import { LoadingState } from './loading-state';
 import { MetricCard } from './metric-card';
 import { Sidebar } from './sidebar';
 import type { DashboardData } from '@/types/analytics';
@@ -140,8 +142,14 @@ export function DashboardShell() {
         <section className="scope-banner">
           <div className="scope-copy">
             <div>
-              <strong>{errorMessage ?? 'Loading dashboard data...'}</strong>
-              <span>Dashboard metrics are available only after a successful backend response.</span>
+              {errorMessage ? (
+                <>
+                  <strong>{errorMessage}</strong>
+                  <span>Dashboard metrics are available only after a successful backend response.</span>
+                </>
+              ) : (
+                <LoadingState message="Loading dashboard data..." />
+              )}
             </div>
           </div>
           {errorMessage && (
@@ -393,6 +401,37 @@ export function DashboardShell() {
             </ResponsiveContainer>
           </Card>
         </section>
+
+        <Card
+          className="table-card"
+          title="Student Enrollment Snapshot"
+          eyebrow="Live backend data"
+          action={
+            <a className="text-action" href="/students">
+              Read more <ArrowRight size={15} />
+            </a>
+          }
+        >
+          <div className="student-preview-list">
+            {dashboardData.students.length === 0 ? (
+              <EmptyState message="No students were returned for this scope." />
+            ) : (
+              dashboardData.students.map((student) => (
+                <article key={student.studentId} className="student-preview-row">
+                  <div>
+                    <strong>{student.name}</strong>
+                    <span>{student.region} · {student.courses.length} courses</span>
+                  </div>
+                  <div className="completion-summary">
+                    <span className="status-completed">{student.completion.completed} done</span>
+                    <span className="status-progress">{student.completion.inProgress} active</span>
+                    <span className="status-dropped">{student.completion.dropped} dropped</span>
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+        </Card>
 
         <Card className="table-card" title="Most Popular Courses by Enrollment Count">
           <div className="table-tools">

@@ -18,7 +18,11 @@ export function Sidebar() {
         </div>
         <nav>
           {links.map(([label, Icon], index) => (
-            <a key={label} className={index === 0 ? 'active' : ''} href="#">
+            <a
+              key={label}
+              className={index === 0 ? 'active' : ''}
+              href={label === 'Student Roster' ? '/students' : '#'}
+            >
               <Icon size={19} />
               {label}
             </a>

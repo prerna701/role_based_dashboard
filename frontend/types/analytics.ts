@@ -58,5 +58,44 @@ export type DashboardData = {
   dropOffRisks: DropOffRisk[];
   monthlyRevenue: MonthlyRevenue[];
   popularCourses: PopularCourse[];
+  students: StudentDetails[];
   source: 'api';
+};
+
+export type StudentCourse = {
+  courseId: string;
+  title: string;
+  category: string;
+  level: string;
+  instructor: string;
+  durationWeeks: number;
+  enrolledOn: string;
+  completionStatus: string;
+  grade: string | null;
+  rating: number;
+  feePaid: number;
+};
+
+export type StudentDetails = {
+  studentId: string;
+  name: string;
+  region: string;
+  joinedOn: string;
+  courses: StudentCourse[];
+  completion: {
+    completed: number;
+    inProgress: number;
+    dropped: number;
+  };
+};
+
+export type StudentsPage = {
+  data: StudentDetails[];
+  meta: {
+    region: string | null;
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 };
