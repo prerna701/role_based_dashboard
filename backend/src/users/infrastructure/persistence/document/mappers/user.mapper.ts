@@ -30,7 +30,7 @@ export class UserMapper {
 
     if (raw.status) {
       domainEntity.status = new Status();
-      domainEntity.status.id = raw.status._id;
+      domainEntity.status.id = Number(raw.status._id);
     }
 
     domainEntity.createdAt = raw.createdAt;
