@@ -1,11 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AuthInput } from '../ui/AuthInput';
 import { AuthButton } from '../ui/AuthButton';
+import { loginWithEmail, persistAuthSession } from '@/lib/analytics-api';
 import styles from '../../app/(auth)/auth.module.css';
 
 export const SignInForm = () => {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,23 +19,26 @@ export const SignInForm = () => {
     setLoading(true);
     setError('');
 
-    // Simulate login request
-    setTimeout(() => {
+    try {
+      const payload = await loginWithEmail(email, password);
+      persistAuthSession(payload);
+      router.replace('/');
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Unable to sign in. Please try again.',
+      );
+    } finally {
       setLoading(false);
-      // Mock validation
-      if (email === 'demo@example.com' && password === 'password') {
-        window.location.href = '/'; // redirect to dashboard on success
-      } else {
-        setError('Invalid email or password. Try demo@example.com / password.');
-      }
-    }, 1000);
+    }
   };
 
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate>
       <div className={styles.header}>
         <h1 className={styles.title}>Sign In</h1>
-        <p className={styles.subtitle}>Welcome back! Please enter your details.</p>
+        <p className={styles.subtitle}>Welcome back! Please enter your dashboard credentials.</p>
       </div>
 
       {error && (

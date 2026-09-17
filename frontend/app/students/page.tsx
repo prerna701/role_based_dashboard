@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, BookOpen, Search, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -8,7 +9,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/dashboard/empty-state';
 import { LoadingState } from '@/components/dashboard/loading-state';
 import { Sidebar } from '@/components/dashboard/sidebar';
-import { getStoredAccessToken, loadStudents, loginAsRole } from '@/lib/analytics-api';
+import { getStoredAuthSession, loadStudents } from '@/lib/analytics-api';
 import { canAccessRegion, formatCurrency, roles, resolveRegionForRole } from '@/lib/dashboard-data';
 import type { StudentsPage } from '@/types/analytics';
 import type { RoleKey } from '@/types/dashboard';
@@ -35,9 +36,10 @@ function getCourseEndDate(enrolledOn: string, durationWeeks: number): string {
 }
 
 export default function StudentsPage() {
+  const router = useRouter();
   const [roleKey, setRoleKey] = useState<RoleKey>('admin');
   const [selectedRegion, setSelectedRegion] = useState('all');
-  const [token, setToken] = useState<string | null>(getStoredAccessToken());
+  const [token, setToken] = useState<string | null>(null);
   const [studentsPage, setStudentsPage] = useState<StudentsPage | null>(null);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -48,15 +50,17 @@ export default function StudentsPage() {
   const role = roles[roleKey];
 
   useEffect(() => {
-    if (token) return;
+    const session = getStoredAuthSession();
 
-    loginAsRole('admin')
-      .then((payload) => setToken(payload.token))
-      .catch((requestError: Error) => {
-        setError(requestError.message);
-        setLoading(false);
-      });
-  }, [token]);
+    if (!session) {
+      router.replace('/login');
+      return;
+    }
+
+    setRoleKey(session.roleKey);
+    setSelectedRegion(resolveRegionForRole(session.roleKey, 'all'));
+    setToken(session.token);
+  }, [router]);
 
   useEffect(() => {
     if (!token) return;
@@ -79,14 +83,6 @@ export default function StudentsPage() {
       { completed: 0, inProgress: 0, dropped: 0 },
     );
   }, [studentsPage]);
-
-  async function changeRole(nextRole: RoleKey) {
-    setRoleKey(nextRole);
-    setSelectedRegion(resolveRegionForRole(nextRole, selectedRegion));
-    setPage(1);
-    const payload = await loginAsRole(nextRole);
-    setToken(payload.token);
-  }
 
   function changeRegion(region: string) {
     if (canAccessRegion(roleKey, region)) {
@@ -111,14 +107,7 @@ export default function StudentsPage() {
             </p>
           </div>
           <div className="student-controls">
-            <label className="role-select">
-              <span>Role</span>
-              <select value={roleKey} onChange={(event) => changeRole(event.target.value as RoleKey)}>
-                {(Object.keys(roles) as RoleKey[]).map((key) => (
-                  <option key={key} value={key}>{roles[key].label}</option>
-                ))}
-              </select>
-            </label>
+            <span className="api-pill">{role.label}</span>
             <label className="role-select">
               <span>Region</span>
               <select value={scopedRegion} onChange={(event) => changeRegion(event.target.value)}>

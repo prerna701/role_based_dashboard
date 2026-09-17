@@ -21,21 +21,6 @@ type RequestOptions = {
   search?: string;
 };
 
-const roleCredentials = {
-  admin: {
-    email: 'admin@dashboard.test',
-    password: 'Admin@123',
-  },
-  north: {
-    email: 'north.manager@dashboard.test',
-    password: 'North@123',
-  },
-  south: {
-    email: 'south.manager@dashboard.test',
-    password: 'South@123',
-  },
-};
-
 const categoryColors: Record<string, string> = {
   'Data & Analytics': '#0284c7',
   Programming: '#4f46e5',
@@ -45,7 +30,9 @@ const categoryColors: Record<string, string> = {
   'Design & UX': '#9333ea',
 };
 
-export type RoleCredentialKey = keyof typeof roleCredentials;
+const ACCESS_TOKEN_KEY = 'accessToken';
+const AUTH_USER_KEY = 'authUser';
+const AUTH_ROLE_KEY = 'authRoleKey';
 
 function regionCodeFromKey(region?: string): string | undefined {
   if (!region || region === 'all') {
@@ -127,7 +114,7 @@ function unwrapList<T>(payload: unknown): T[] {
   throw new Error('The analytics list response was invalid.');
 }
 
-type LoginPayload = {
+export type LoginPayload = {
   token: string;
   user?: {
     id: number;
@@ -140,6 +127,12 @@ type LoginPayload = {
     } | null;
     regionCode?: string | null;
   };
+};
+
+export type AuthSession = {
+  token: string;
+  roleKey: RoleKey;
+  user: LoginPayload['user'] | null;
 };
 
 type ApiResponse<T> = {
@@ -264,29 +257,25 @@ function withAllRegions(
   ];
 }
 
-export async function loginAsRole(roleKey: RoleCredentialKey): Promise<LoginPayload> {
-  const credentials = roleCredentials[roleKey];
-
+export async function loginWithEmail(
+  email: string,
+  password: string,
+): Promise<LoginPayload> {
   try {
     const response = await fetch(`${API_BASE_URL}/auth/email/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(credentials),
+      body: JSON.stringify({ email, password }),
     });
 
     if (!response.ok) {
-      throw new Error(`Login failed with status ${response.status}.`);
+      throw new Error('Invalid email or password.');
     }
 
     const responsePayload = (await response.json()) as ApiResponse<LoginPayload>;
-    const payload = responsePayload.data;
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem('accessToken', payload.token);
-    }
-
-    return payload;
+    return responsePayload.data;
   } catch (error) {
     if (error instanceof Error) {
       throw error;
@@ -294,6 +283,22 @@ export async function loginAsRole(roleKey: RoleCredentialKey): Promise<LoginPayl
 
     throw new Error('Unable to connect to the authentication API.');
   }
+}
+
+export function persistAuthSession(payload: LoginPayload): AuthSession {
+  const session = {
+    token: payload.token,
+    roleKey: resolveRoleKeyFromLoginPayload(payload),
+    user: payload.user ?? null,
+  };
+
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem(ACCESS_TOKEN_KEY, session.token);
+    window.localStorage.setItem(AUTH_ROLE_KEY, session.roleKey);
+    window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(session.user));
+  }
+
+  return session;
 }
 
 export async function loadDashboardData(options: RequestOptions): Promise<DashboardData> {
@@ -380,5 +385,35 @@ export async function loadStudents(options: RequestOptions): Promise<StudentsPag
 export function getStoredAccessToken(): string | null {
   return typeof window === 'undefined'
     ? null
-    : window.localStorage.getItem('accessToken');
+    : window.localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
+export function getStoredAuthSession(): AuthSession | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const token = window.localStorage.getItem(ACCESS_TOKEN_KEY);
+  const roleKey = window.localStorage.getItem(AUTH_ROLE_KEY) as RoleKey | null;
+  const storedUser = window.localStorage.getItem(AUTH_USER_KEY);
+
+  if (!token || !roleKey) {
+    return null;
+  }
+
+  return {
+    token,
+    roleKey,
+    user: storedUser ? JSON.parse(storedUser) as LoginPayload['user'] : null,
+  };
+}
+
+export function clearStoredAuthSession() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+  window.localStorage.removeItem(AUTH_ROLE_KEY);
+  window.localStorage.removeItem(AUTH_USER_KEY);
 }

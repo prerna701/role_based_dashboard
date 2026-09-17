@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   ArrowRight,
   BookOpen,
@@ -27,9 +28,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import {
+  getStoredAuthSession,
   loadDashboardData,
-  loginAsRole,
-  resolveRoleKeyFromLoginPayload,
 } from '@/lib/analytics-api';
 import {
   canAccessRegion,
@@ -65,11 +65,12 @@ function getCourseEndDate(enrolledOn: string, durationWeeks: number): Date {
 }
 
 export function DashboardShell() {
+  const router = useRouter();
   const [roleKey, setRoleKey] = useState<RoleKey>('admin');
   const [selectedRegion, setSelectedRegion] = useState('all');
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [authMessage, setAuthMessage] = useState('Connecting to seeded Admin account...');
+  const [authMessage, setAuthMessage] = useState('Checking authenticated session...');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -95,19 +96,18 @@ export function DashboardShell() {
   }, [scopedRegion, token]);
 
   useEffect(() => {
-    loginAsRole('admin')
-      .then((payload) => {
-        const authenticatedRole = resolveRoleKeyFromLoginPayload(payload);
-        setRoleKey(authenticatedRole);
-        setSelectedRegion(resolveRegionForRole(authenticatedRole, 'all'));
-        setToken(payload.token);
-        setAuthMessage(`JWT role connected: ${roles[authenticatedRole].label}`);
-      })
-      .catch((error: Error) => {
-        setErrorMessage(error.message);
-        setAuthMessage('Backend login unavailable');
-      });
-  }, []);
+    const session = getStoredAuthSession();
+
+    if (!session) {
+      router.replace('/login');
+      return;
+    }
+
+    setRoleKey(session.roleKey);
+    setSelectedRegion(resolveRegionForRole(session.roleKey, 'all'));
+    setToken(session.token);
+    setAuthMessage(`JWT role connected: ${roles[session.roleKey].label}`);
+  }, [router]);
 
   const filteredCourses = useMemo(() => {
     return (dashboardData?.popularCourses ?? []).filter((course) => {
@@ -122,26 +122,6 @@ export function DashboardShell() {
   const categoryOptions = useMemo(() => {
     return Array.from(new Set((dashboardData?.popularCourses ?? []).map((course) => course.category)));
   }, [dashboardData?.popularCourses]);
-
-  async function switchRole(nextRole: RoleKey) {
-    setRoleKey(nextRole);
-    setAuthMessage(`Connecting to seeded ${roles[nextRole].label} account...`);
-
-    try {
-      const payload = await loginAsRole(nextRole);
-      const authenticatedRole = resolveRoleKeyFromLoginPayload(payload);
-      setRoleKey(authenticatedRole);
-      setSelectedRegion((current) => resolveRegionForRole(authenticatedRole, current));
-      setToken(payload.token);
-      setAuthMessage(`JWT role connected: ${roles[authenticatedRole].label}`);
-      setErrorMessage(null);
-    } catch (error) {
-      setToken(null);
-      setDashboardData(null);
-      setErrorMessage(error instanceof Error ? error.message : 'Login failed.');
-      setAuthMessage('Backend login unavailable');
-    }
-  }
 
   function handleRegionClick(regionKey: string) {
     if (canAccessRegion(roleKey, regionKey)) {
@@ -205,19 +185,6 @@ export function DashboardShell() {
             </div>
           </div>
           <div className="toolbar-actions">
-            <label className="role-select">
-              <span>Role</span>
-              <select
-                value={roleKey}
-                onChange={(event) => switchRole(event.target.value as RoleKey)}
-              >
-                {(Object.keys(roles) as RoleKey[]).map((key) => (
-                  <option key={key} value={key}>
-                    {roles[key].label}
-                  </option>
-                ))}
-              </select>
-            </label>
             <span className="api-pill">Live API</span>
             <span className="api-pill">{authMessage}</span>
             <button className="icon-button" onClick={refreshDashboard} title="Refresh dashboard">

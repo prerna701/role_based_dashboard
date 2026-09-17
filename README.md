@@ -57,6 +57,8 @@ committed intentionally so the project can run as-is.
 ## Login Credentials
 
 Use `POST /api/v1/auth/email/login`.
+The same seeded accounts are used by the frontend login page; the frontend does
+not hardcode credentials or auto-login as any role.
 
 | Role          | Email                          | Password    | Data scope  |
 | ------------- | ------------------------------ | ----------- | ----------- |
@@ -236,8 +238,9 @@ the appropriate `401` or `403` status, and unexpected errors return a generic
 ## Frontend Data Flow
 
 `frontend/lib/analytics-api.ts` is the frontend data-access boundary. It is the
-only source module that calls the backend, stores the login token, validates and
-unwraps API responses, and maps backend fields into the dashboard data shape.
+only source module that calls the backend, stores the login token returned by
+`POST /auth/email/login`, validates and unwraps API responses, and maps backend
+fields into the dashboard data shape.
 The dashboard renders no hardcoded analytics data: it shows a loading or error
 state until the login and analytics requests succeed. `DashboardShell` owns UI
 state such as the selected role, region, search, and filters; it consumes the
