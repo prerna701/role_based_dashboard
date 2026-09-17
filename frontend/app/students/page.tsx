@@ -4,11 +4,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BookOpen, Search, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { DataTable } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/dashboard/empty-state';
 import { LoadingState } from '@/components/dashboard/loading-state';
 import { Sidebar } from '@/components/dashboard/sidebar';
 import { getStoredAccessToken, loadStudents, loginAsRole } from '@/lib/analytics-api';
-import { canAccessRegion, roles, resolveRegionForRole } from '@/lib/dashboard-data';
+import { canAccessRegion, formatCurrency, roles, resolveRegionForRole } from '@/lib/dashboard-data';
 import type { StudentsPage } from '@/types/analytics';
 import type { RoleKey } from '@/types/dashboard';
 
@@ -17,6 +18,21 @@ const statusLabels = {
   in_progress: 'In Progress',
   dropped: 'Dropped',
 } as const;
+
+function formatDisplayDate(value: string): string {
+  return new Intl.DateTimeFormat('en', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(value));
+}
+
+function getCourseEndDate(enrolledOn: string, durationWeeks: number): string {
+  const endDate = new Date(enrolledOn);
+  endDate.setDate(endDate.getDate() + durationWeeks * 7);
+
+  return formatDisplayDate(endDate.toISOString());
+}
 
 export default function StudentsPage() {
   const [roleKey, setRoleKey] = useState<RoleKey>('admin');
@@ -166,25 +182,49 @@ export default function StudentsPage() {
                       <span>{student.completion.completed} completed</span>
                     </div>
                   </div>
-                  <div className="course-detail-list">
-                    {student.courses.map((course) => (
-                      <div className="course-detail" key={`${student.studentId}-${course.courseId}`}>
-                        <div>
-                          <strong>{course.title}</strong>
-                          <span>
-                            {course.category} | {course.level} | {course.instructor} | {course.durationWeeks} weeks
-                          </span>
-                        </div>
-                        <div className="course-detail-meta">
-                          <span>Enrolled {course.enrolledOn}</span>
-                          <span className={`status-pill status-${course.completionStatus}`}>
-                            {statusLabels[course.completionStatus as keyof typeof statusLabels] ?? course.completionStatus}
-                          </span>
-                          <span>{course.grade ?? 'No grade'}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <DataTable className="student-course-table" minWidth={1080}>
+                    <thead>
+                      <tr>
+                        <th>Course Name</th>
+                        <th>Category</th>
+                        <th>Level</th>
+                        <th>Instructor</th>
+                        <th>Starting Date</th>
+                        <th>Ending Date</th>
+                        <th>Progress</th>
+                        <th>Grade</th>
+                        <th>Rating</th>
+                        <th>Fee Paid</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {student.courses.map((course) => (
+                        <tr key={`${student.studentId}-${course.courseId}`}>
+                          <td>
+                            <div className="course-title compact-course-title">
+                              <div>
+                                <strong>{course.title}</strong>
+                                <small>{course.courseId} | {course.durationWeeks} weeks</small>
+                              </div>
+                            </div>
+                          </td>
+                          <td><span className="category-badge">{course.category}</span></td>
+                          <td>{course.level}</td>
+                          <td>{course.instructor}</td>
+                          <td>{formatDisplayDate(course.enrolledOn)}</td>
+                          <td>{getCourseEndDate(course.enrolledOn, course.durationWeeks)}</td>
+                          <td>
+                            <span className={`status-pill status-${course.completionStatus}`}>
+                              {statusLabels[course.completionStatus as keyof typeof statusLabels] ?? course.completionStatus}
+                            </span>
+                          </td>
+                          <td>{course.grade ?? 'No grade'}</td>
+                          <td>{course.rating.toFixed(1)}</td>
+                          <td>{formatCurrency(course.feePaid)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </DataTable>
                 </article>
               ))}
             </div>

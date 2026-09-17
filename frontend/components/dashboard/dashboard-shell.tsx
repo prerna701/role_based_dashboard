@@ -28,6 +28,7 @@ import {
 } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { DataTable } from '@/components/ui/data-table';
 import {
   loadDashboardData,
   loginAsRole,
@@ -458,8 +459,7 @@ export function DashboardShell() {
               ))}
             </select>
           </div>
-          <div className="data-table-wrap">
-            <table className="data-table">
+          <DataTable>
               <thead>
                 <tr>
                   <th>Rank & Course Title</th>
@@ -505,8 +505,7 @@ export function DashboardShell() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+          </DataTable>
         </Card>
 
         <Card className="table-card" title="Drop-off Risk Watchlist" eyebrow="Direct backend endpoint">
