@@ -1,0 +1,7 @@
+build(deps-dev): bump @types/jest from 26.0.22 to 26.0.23
+
+Bumps [@types/jest](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/HEAD/types/jest) from 26.0.22 to 26.0.23.
+- [Release notes](https://github.com/DefinitelyTyped/DefinitelyTyped/releases)
+- [Commits](https://github.com/DefinitelyTyped/DefinitelyTyped/commits/HEAD/types/jest)
+
+Signed-off-by: dependabot[bot] <support@github.com>

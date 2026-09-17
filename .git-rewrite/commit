@@ -1,0 +1,20 @@
+tree 238a279a9b4c1afa6264ad8992535b4c8ff7c117
+parent 5799c0895db383576f4f8597c435798203bd1c59
+parent d21c0fb497beef64030874453211b4c81ae3fc02
+author Vladyslav Shchepotin <vladislav.schepotin@gmail.com> 1620032673 +0300
+committer GitHub <noreply@github.com> 1620032673 +0300
+gpgsig -----BEGIN PGP SIGNATURE-----
+ 
+ wsBcBAABCAAQBQJgj7yhCRBK7hj4Ov3rIwAAphMIAHohlBCsBnNkIAs47jq6w2PQ
+ weycw5X/utQ5IZNbjrEAeOcnq2/Fc/oAC6vpqDT497jmBDs6QgqlEto7UscZlJGj
+ OJyomWSpRw6t73TJo83jf3NIy0BhbhyskxqRzEpQYqwmkGjVOfTwecUWt70pzxuS
+ 7OWZLKL6Wh3kbAwRmjhF2t27r0ZZu/+dapJ3bD93BgJh+nycH969EN/U+cTELW7c
+ n8g8elNLLtGA83CfqjhHzRkxLDtHlnEGGaGX+ITdRZMOrT42oIeLACwGKZ7t4/GO
+ Lw8I91MN+Xy80ZpnW+CyVeYqc5gBABvhosaieTsFIB0JJwt3YIWAPpsPusJQACA=
+ =O+kJ
+ -----END PGP SIGNATURE-----
+ 
+
+Merge pull request #166 from Shchepotin/dependabot/npm_and_yarn/types/jest-26.0.23
+
+build(deps-dev): bump @types/jest from 26.0.22 to 26.0.23

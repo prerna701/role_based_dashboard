@@ -1,26 +1,118 @@
+x-backend-environment: &backend-environment
+  env_file:
+    - .env
+
 services:
   postgres:
-    image: ${POSTGRES_IMAGE}
-    container_name: ${POSTGRES_CONTAINER_NAME}
-    restart: ${POSTGRES_RESTART_POLICY}
-    ports:
-      - "${POSTGRES_HOST_PORT}:5432"
+    image: ${POSTGRES_IMAGE:?POSTGRES_IMAGE is required}
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME:?DATABASE_NAME is required}
+      POSTGRES_USER: ${DATABASE_USERNAME:?DATABASE_USERNAME is required}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required}
+    ports:
+      - "${POSTGRES_HOST_PORT:?POSTGRES_HOST_PORT is required}:${DATABASE_PORT:?DATABASE_PORT is required}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}",
-        ]
-      interval: ${POSTGRES_HEALTHCHECK_INTERVAL}
-      timeout: ${POSTGRES_HEALTHCHECK_TIMEOUT}
-      retries: ${POSTGRES_HEALTHCHECK_RETRIES}
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: ${POSTGRES_HEALTHCHECK_INTERVAL:?POSTGRES_HEALTHCHECK_INTERVAL is required}
+      timeout: ${POSTGRES_HEALTHCHECK_TIMEOUT:?POSTGRES_HEALTHCHECK_TIMEOUT is required}
+      retries: ${POSTGRES_HEALTHCHECK_RETRIES:?POSTGRES_HEALTHCHECK_RETRIES is required}
+
+  adminer:
+    image: ${ADMINER_IMAGE:?ADMINER_IMAGE is required}
+    restart: ${SERVICE_RESTART_POLICY:?SERVICE_RESTART_POLICY is required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ADMINER_DEFAULT_SERVER: ${POSTGRES_SERVICE_NAME:?POSTGRES_SERVICE_NAME is required}
+    ports:
+      - "${ADMINER_HOST_PORT:?ADMINER_HOST_PORT is required}:${ADMINER_CONTAINER_PORT:?ADMINER_CONTAINER_PORT is required}"
+
+  migration:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:?NODE_IMAGE is required}
+        NODE_ENV: ${IMAGE_NODE_ENV:?IMAGE_NODE_ENV is required}
+        APP_PORT: ${BACKEND_CONTAINER_PORT:?BACKEND_CONTAINER_PORT is required}
+        NODE_UID: ${NODE_UID:?NODE_UID is required}
+        NODE_GID: ${NODE_GID:?NODE_GID is required}
+        NODE_USER: ${NODE_USER:?NODE_USER is required}
+        NODE_GROUP: ${NODE_GROUP:?NODE_GROUP is required}
+    <<: *backend-environment
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["node", "./node_modules/typeorm/cli.js", "--dataSource=dist/database/data-source.js", "migration:run"]
+    restart: ${ONE_SHOT_RESTART_POLICY:?ONE_SHOT_RESTART_POLICY is required}
+
+  seed:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:?NODE_IMAGE is required}
+        NODE_ENV: ${IMAGE_NODE_ENV:?IMAGE_NODE_ENV is required}
+        APP_PORT: ${BACKEND_CONTAINER_PORT:?BACKEND_CONTAINER_PORT is required}
+        NODE_UID: ${NODE_UID:?NODE_UID is required}
+        NODE_GID: ${NODE_GID:?NODE_GID is required}
+        NODE_USER: ${NODE_USER:?NODE_USER is required}
+        NODE_GROUP: ${NODE_GROUP:?NODE_GROUP is required}
+    <<: *backend-environment
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+    command: ["node", "dist/database/seeds/relational/assessment/run-assessment-seed.js"]
+    restart: ${ONE_SHOT_RESTART_POLICY:?ONE_SHOT_RESTART_POLICY is required}
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:?NODE_IMAGE is required}
+        NODE_ENV: ${IMAGE_NODE_ENV:?IMAGE_NODE_ENV is required}
+        APP_PORT: ${BACKEND_CONTAINER_PORT:?BACKEND_CONTAINER_PORT is required}
+        NODE_UID: ${NODE_UID:?NODE_UID is required}
+        NODE_GID: ${NODE_GID:?NODE_GID is required}
+        NODE_USER: ${NODE_USER:?NODE_USER is required}
+        NODE_GROUP: ${NODE_GROUP:?NODE_GROUP is required}
+    <<: *backend-environment
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    ports:
+      - "${BACKEND_HOST_PORT:?BACKEND_HOST_PORT is required}:${BACKEND_CONTAINER_PORT:?BACKEND_CONTAINER_PORT is required}"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:' + process.env.APP_PORT).then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: ${BACKEND_HEALTHCHECK_INTERVAL:?BACKEND_HEALTHCHECK_INTERVAL is required}
+      timeout: ${BACKEND_HEALTHCHECK_TIMEOUT:?BACKEND_HEALTHCHECK_TIMEOUT is required}
+      retries: ${BACKEND_HEALTHCHECK_RETRIES:?BACKEND_HEALTHCHECK_RETRIES is required}
+      start_period: ${BACKEND_HEALTHCHECK_START_PERIOD:?BACKEND_HEALTHCHECK_START_PERIOD is required}
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:?NODE_IMAGE is required}
+        NODE_ENV: ${IMAGE_NODE_ENV:?IMAGE_NODE_ENV is required}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required}
+        FRONTEND_PORT: ${FRONTEND_CONTAINER_PORT:?FRONTEND_CONTAINER_PORT is required}
+        NODE_UID: ${NODE_UID:?NODE_UID is required}
+        NODE_GID: ${NODE_GID:?NODE_GID is required}
+        NODE_USER: ${NODE_USER:?NODE_USER is required}
+        NODE_GROUP: ${NODE_GROUP:?NODE_GROUP is required}
+    env_file:
+      - .env
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_HOST_PORT:?FRONTEND_HOST_PORT is required}:${FRONTEND_CONTAINER_PORT:?FRONTEND_CONTAINER_PORT is required}"
 
 volumes:
   postgres_data:
-    name: ${POSTGRES_VOLUME_NAME}
