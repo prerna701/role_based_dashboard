@@ -10,12 +10,15 @@ import { RegionEntity } from '../../../../../learning/entities/region.entity';
 import {
   AnalyticsOverview,
   AnalyticsPagination,
+  AnalyticsPaginatedResult,
   AnalyticsRegionScope,
   CategoryRevenue,
   DropOffCourse,
   MonthlyRevenue,
   PopularCourse,
+  StudentDetails,
 } from '../../../../domain/analytics';
+import { StudentEntity } from '../../../../../learning/entities/student.entity';
 import { AnalyticsRepository } from '../../analytics.repository';
 
 type SummaryRow = {
@@ -69,6 +72,25 @@ type MonthlyRevenueRow = {
   revenue: string | number | null;
 };
 
+type StudentRow = {
+  studentId: string;
+  studentExternalId: string;
+  studentName: string;
+  region: string;
+  joinedOn: string;
+  courseId: string;
+  courseTitle: string;
+  category: string;
+  level: string;
+  instructor: string;
+  durationWeeks: string | number;
+  enrolledOn: string;
+  completionStatus: CompletionStatus;
+  grade: string | null;
+  rating: string | number;
+  feePaid: string | number;
+};
+
 @Injectable()
 export class AnalyticsRelationalRepository implements AnalyticsRepository {
   constructor(
@@ -78,6 +100,8 @@ export class AnalyticsRelationalRepository implements AnalyticsRepository {
     private readonly enrollmentRepository: Repository<EnrollmentEntity>,
     @InjectRepository(RegionEntity)
     private readonly regionRepository: Repository<RegionEntity>,
+    @InjectRepository(StudentEntity)
+    private readonly studentRepository: Repository<StudentEntity>,
   ) {}
 
   async assertRegionExists(regionCode: string): Promise<boolean> {
@@ -151,7 +175,7 @@ export class AnalyticsRelationalRepository implements AnalyticsRepository {
   async getPopularCourses(
     scope: AnalyticsRegionScope,
     pagination: AnalyticsPagination,
-  ): Promise<{ data: PopularCourse[]; total: number }> {
+  ): Promise<AnalyticsPaginatedResult<PopularCourse>> {
     const [rows, total] = await Promise.all([
       this.courseAggregate(scope)
         .addSelect('AVG(enrollment.rating)', 'averageRating')
@@ -195,7 +219,7 @@ export class AnalyticsRelationalRepository implements AnalyticsRepository {
   async getDropOffByCourse(
     scope: AnalyticsRegionScope,
     pagination: AnalyticsPagination,
-  ): Promise<{ data: DropOffCourse[]; total: number }> {
+  ): Promise<AnalyticsPaginatedResult<DropOffCourse>> {
     const [rows, total] = await Promise.all([
       this.courseAggregate(scope)
         .addSelect(
@@ -247,7 +271,7 @@ export class AnalyticsRelationalRepository implements AnalyticsRepository {
   async getMonthlyRevenue(
     scope: AnalyticsRegionScope,
     pagination: AnalyticsPagination,
-  ): Promise<{ data: MonthlyRevenue[]; total: number }> {
+  ): Promise<AnalyticsPaginatedResult<MonthlyRevenue>> {
     const monthExpression = "TO_CHAR(DATE_TRUNC('month', enrollment.enrolledOn), 'YYYY-MM')";
 
     const [rows, total] = await Promise.all([
@@ -273,6 +297,100 @@ export class AnalyticsRelationalRepository implements AnalyticsRepository {
     };
   }
 
+  async getStudents(
+    scope: AnalyticsRegionScope,
+    pagination: AnalyticsPagination,
+    search?: string,
+  ): Promise<AnalyticsPaginatedResult<StudentDetails>> {
+    const studentQuery = this.scopedStudents(scope, search);
+    const total = await studentQuery.getCount();
+    const studentIds = await studentQuery
+      .select('student.id', 'studentId')
+      .orderBy('student.name', 'ASC')
+      .addOrderBy('student.id', 'ASC')
+      .skip(pagination.offset)
+      .take(pagination.limit)
+      .getRawMany<{ studentId: string }>();
+
+    if (studentIds.length === 0) {
+      return { data: [], total };
+    }
+
+    const rows = await this.enrollmentRepository
+      .createQueryBuilder('enrollment')
+      .innerJoin('enrollment.student', 'student')
+      .innerJoin('student.region', 'region')
+      .innerJoin('enrollment.course', 'course')
+      .innerJoin('course.category', 'category')
+      .innerJoin('course.instructor', 'instructor')
+      .select('student.id', 'studentId')
+      .addSelect('student.externalId', 'studentExternalId')
+      .addSelect('student.name', 'studentName')
+      .addSelect('region.name', 'region')
+      .addSelect('student.joinedOn', 'joinedOn')
+      .addSelect('course.externalId', 'courseId')
+      .addSelect('course.title', 'courseTitle')
+      .addSelect('category.name', 'category')
+      .addSelect('course.level', 'level')
+      .addSelect('instructor.name', 'instructor')
+      .addSelect('course.durationWeeks', 'durationWeeks')
+      .addSelect('enrollment.enrolledOn', 'enrolledOn')
+      .addSelect('enrollment.completionStatus', 'completionStatus')
+      .addSelect('enrollment.grade', 'grade')
+      .addSelect('enrollment.rating', 'rating')
+      .addSelect('enrollment.feePaid', 'feePaid')
+      .where('student.id IN (:...studentIds)', {
+        studentIds: studentIds.map((row) => row.studentId),
+      })
+      .orderBy('student.name', 'ASC')
+      .addOrderBy('enrollment.enrolledOn', 'DESC')
+      .getRawMany<StudentRow>();
+
+    const students = new Map<string, StudentDetails>();
+
+    for (const row of rows) {
+      const student = students.get(row.studentId) ?? {
+        studentId: row.studentExternalId,
+        name: row.studentName,
+        region: row.region,
+        joinedOn: row.joinedOn,
+        courses: [],
+        completion: { completed: 0, inProgress: 0, dropped: 0 },
+      };
+
+      student.courses.push({
+        courseId: row.courseId,
+        title: row.courseTitle,
+        category: row.category,
+        level: row.level,
+        instructor: row.instructor,
+        durationWeeks: Number(row.durationWeeks),
+        enrolledOn: row.enrolledOn,
+        completionStatus: row.completionStatus,
+        grade: row.grade,
+        rating: Number(row.rating),
+        feePaid: Number(row.feePaid),
+      });
+
+      if (row.completionStatus === CompletionStatus.Completed) {
+        student.completion.completed += 1;
+      } else if (row.completionStatus === CompletionStatus.InProgress) {
+        student.completion.inProgress += 1;
+      } else {
+        student.completion.dropped += 1;
+      }
+
+      students.set(row.studentId, student);
+    }
+
+    return {
+      data: studentIds
+        .map((row) => students.get(row.studentId))
+        .filter((student): student is StudentDetails => Boolean(student)),
+      total,
+    };
+  }
+
   private async getSummary(
     scope: AnalyticsRegionScope,
   ): Promise<AnalyticsOverview['summary']> {
@@ -289,6 +407,30 @@ export class AnalyticsRelationalRepository implements AnalyticsRepository {
       averageRating: this.round(this.toNumber(row?.averageRating), 2),
       netRevenue: this.toNumber(row?.netRevenue),
     };
+  }
+
+  private scopedStudents(
+    scope: AnalyticsRegionScope,
+    search?: string,
+  ): SelectQueryBuilder<StudentEntity> {
+    const queryBuilder = this.studentRepository
+      .createQueryBuilder('student')
+      .innerJoin('student.region', 'region');
+
+    if (scope.regionCode) {
+      queryBuilder.andWhere('student.regionCode = :regionCode', {
+        regionCode: scope.regionCode,
+      });
+    }
+
+    if (search?.trim()) {
+      queryBuilder.andWhere(
+        '(LOWER(student.name) LIKE LOWER(:search) OR LOWER(student.externalId) LIKE LOWER(:search))',
+        { search: `%${search.trim()}%` },
+      );
+    }
+
+    return queryBuilder;
   }
 
   private async getRegionSummaries(

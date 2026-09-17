@@ -5,11 +5,9 @@ import databaseConfig from './database/config/database.config';
 import authConfig from './auth/config/auth.config';
 import appConfig from './config/app.config';
 
-import path from 'path';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { HeaderResolver, I18nModule } from 'nestjs-i18n';
 import { TypeOrmConfigService } from './database/typeorm-config.service';
 
 import { HomeModule } from './home/home.module';
@@ -44,29 +42,6 @@ const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
       envFilePath: ['.env'],
     }),
     infrastructureDatabaseModule,
-    I18nModule.forRootAsync({
-      useFactory: (configService: ConfigService<AllConfigType>) => ({
-        fallbackLanguage: configService.getOrThrow('app.fallbackLanguage', {
-          infer: true,
-        }),
-        loaderOptions: { path: path.join(__dirname, '/i18n/'), watch: true },
-      }),
-      resolvers: [
-        {
-          use: HeaderResolver,
-          useFactory: (configService: ConfigService<AllConfigType>) => {
-            return [
-              configService.get('app.headerLanguage', {
-                infer: true,
-              }),
-            ];
-          },
-          inject: [ConfigService],
-        },
-      ],
-      imports: [ConfigModule],
-      inject: [ConfigService],
-    }),
     UsersModule,
     AuthModule,
     SessionModule,

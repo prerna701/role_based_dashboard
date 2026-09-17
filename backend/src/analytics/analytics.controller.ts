@@ -17,10 +17,12 @@ import {
   MonthlyRevenueApiResponse,
   PopularCoursesApiResponse,
   RevenueByCategoryApiResponse,
+  StudentsApiResponse,
 } from './dto/analytics-response.dto';
 import { AnalyticsService } from './analytics.service';
 import { RevenueByCategoryQueryDto } from './dto/revenue-by-category-query.dto';
 import { ScopedPaginationQueryDto } from './dto/scoped-pagination-query.dto';
+import { StudentsQueryDto } from './dto/students-query.dto';
 
 @ApiTags('Analytics')
 @Controller({
@@ -130,6 +132,25 @@ export class AnalyticsController {
     return {
       success: true,
       message: 'Monthly revenue fetched successfully',
+      data: result.data,
+      meta: result.meta,
+    };
+  }
+
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: 'Paginated students and enrolled course details.' })
+  @Get('students')
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.OK)
+  async getStudents(
+    @Request() request: RequestWithUser<JwtPayloadType>,
+    @Query() query: StudentsQueryDto,
+  ): Promise<StudentsApiResponse> {
+    const result = await this.analyticsService.getStudents(request.user.id, query);
+
+    return {
+      success: true,
+      message: 'Students fetched successfully',
       data: result.data,
       meta: result.meta,
     };

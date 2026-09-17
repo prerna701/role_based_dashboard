@@ -1,11 +1,13 @@
 import {
   AnalyticsOverview,
   AnalyticsPagination,
+  AnalyticsPaginatedResult,
   AnalyticsRegionScope,
   CategoryRevenue,
   DropOffCourse,
   MonthlyRevenue,
   PopularCourse,
+  StudentDetails,
 } from '../../domain/analytics';
 
 export abstract class AnalyticsRepository {
@@ -20,15 +22,21 @@ export abstract class AnalyticsRepository {
   abstract getPopularCourses(
     scope: AnalyticsRegionScope,
     pagination: AnalyticsPagination,
-  ): Promise<{ data: PopularCourse[]; total: number }>;
+  ): Promise<AnalyticsPaginatedResult<PopularCourse>>;
 
   abstract getDropOffByCourse(
     scope: AnalyticsRegionScope,
     pagination: AnalyticsPagination,
-  ): Promise<{ data: DropOffCourse[]; total: number }>;
+  ): Promise<AnalyticsPaginatedResult<DropOffCourse>>;
 
   abstract getMonthlyRevenue(
     scope: AnalyticsRegionScope,
     pagination: AnalyticsPagination,
-  ): Promise<{ data: MonthlyRevenue[]; total: number }>;
+  ): Promise<AnalyticsPaginatedResult<MonthlyRevenue>>;
+
+  abstract getStudents(
+    scope: AnalyticsRegionScope,
+    pagination: AnalyticsPagination,
+    search?: string,
+  ): Promise<AnalyticsPaginatedResult<StudentDetails>>;
 }

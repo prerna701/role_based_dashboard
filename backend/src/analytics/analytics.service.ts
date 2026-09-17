@@ -1,16 +1,21 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { RegionScopeService } from '../common/scope/region-scope.service';
 import { User } from '../users/domain/user';
-import { AnalyticsPaginationMeta } from './domain/analytics';
+import {
+  AnalyticsPagination,
+  AnalyticsPaginationMeta,
+} from './domain/analytics';
 import {
   AnalyticsOverviewResponse,
   DropOffByCourseResponse,
   MonthlyRevenueResponse,
   PopularCoursesResponse,
   RevenueByCategoryResponse,
+  StudentsResponse,
 } from './dto/analytics-response.dto';
 import { RevenueByCategoryQueryDto } from './dto/revenue-by-category-query.dto';
 import { ScopedPaginationQueryDto } from './dto/scoped-pagination-query.dto';
+import { StudentsQueryDto } from './dto/students-query.dto';
 import { AnalyticsRepository } from './infrastructure/persistence/analytics.repository';
 
 @Injectable()
@@ -114,6 +119,29 @@ export class AnalyticsService {
     };
   }
 
+  async getStudents(
+    userId: User['id'],
+    query: StudentsQueryDto,
+  ): Promise<StudentsResponse> {
+    const scope = await this.resolveScope(userId, query.region);
+    const pagination = this.getPagination(query);
+    const result = await this.analyticsRepository.getStudents(
+      scope,
+      pagination,
+      query.search,
+    );
+
+    return {
+      data: result.data,
+      meta: this.buildPaginationMeta(
+        scope.regionCode,
+        pagination.page,
+        pagination.limit,
+        result.total,
+      ),
+    };
+  }
+
   private async resolveScope(
     userId: User['id'],
     requestedRegion?: string,
@@ -140,11 +168,9 @@ export class AnalyticsService {
     };
   }
 
-  private getPagination(query: ScopedPaginationQueryDto): {
-    limit: number;
-    offset: number;
-    page: number;
-  } {
+  private getPagination(
+    query: ScopedPaginationQueryDto,
+  ): AnalyticsPagination {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
 

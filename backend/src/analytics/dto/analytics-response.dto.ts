@@ -5,6 +5,7 @@ import {
   DropOffCourse,
   MonthlyRevenue,
   PopularCourse,
+  StudentDetails,
 } from '../domain/analytics';
 
 export type AnalyticsResponseMeta = {
@@ -35,6 +36,16 @@ export type MonthlyRevenueResponse = {
   data: MonthlyRevenue[];
   meta: AnalyticsPaginationMeta;
 };
+
+export type StudentsResponse = {
+  data: StudentDetails[];
+  meta: AnalyticsPaginationMeta;
+};
+
+export type StudentsApiResponse = AnalyticsControllerResponse<
+  StudentsResponse['data'],
+  StudentsResponse['meta']
+>;
 
 export type AnalyticsControllerResponse<T, M> = {
   success: true;
