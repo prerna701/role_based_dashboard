@@ -13,7 +13,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <div hidden>
+          THESIS: role-scoped education analytics dashboard; refuses marketing hero layout.
+          OWN-WORLD: crisp institutional blue surfaces, dense cards, subtle borders, calm charts.
+          STORY: user sees their permitted region, analytics, revenue, and risks immediately.
+          FIRST VIEWPORT: fixed topbar/sidebar, sticky scope controls, metrics, primary chart.
+          FORM: Operate dashboard based on supplied reference; finish checked by build and tests.
+        </div>
+        {children}
+      </body>
     </html>
   );
 }
