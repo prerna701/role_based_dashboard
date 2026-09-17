@@ -8,6 +8,7 @@ import type {
   RegionSummary,
   StudentsPage,
 } from '@/types/analytics';
+import type { RoleKey } from '@/types/dashboard';
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
@@ -133,6 +134,10 @@ type LoginPayload = {
     email?: string;
     firstName?: string;
     lastName?: string;
+    role?: {
+      id?: number | string;
+      name?: string;
+    } | null;
     regionCode?: string | null;
   };
 };
@@ -186,6 +191,62 @@ type PopularCoursesPayload = {
 };
 
 type StudentsPayload = StudentsPage['data'][number];
+
+function colorizeCategoryRevenue(
+  categories: CategoryRevenuePayload[],
+): CategoryRevenue[] {
+  return categories.map((item) => ({
+    ...item,
+    color: categoryColors[item.category] ?? '#3525cd',
+  }));
+}
+
+type JwtPayload = {
+  role?: {
+    id?: number | string;
+    name?: string;
+  } | null;
+};
+
+function decodeJwtPayload(token: string): JwtPayload | null {
+  try {
+    const encodedPayload = token.split('.')[1];
+
+    if (!encodedPayload) {
+      return null;
+    }
+
+    const normalizedPayload = encodedPayload
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+      .padEnd(Math.ceil(encodedPayload.length / 4) * 4, '=');
+    const decodedPayload = JSON.parse(atob(normalizedPayload)) as JwtPayload;
+
+    return decodedPayload;
+  } catch {
+    return null;
+  }
+}
+
+export function resolveRoleKeyFromLoginPayload(payload: LoginPayload): RoleKey {
+  const jwtPayload = decodeJwtPayload(payload.token);
+  const roleId = String(jwtPayload?.role?.id ?? payload.user?.role?.id ?? '');
+  const regionCode = payload.user?.regionCode?.toLowerCase();
+
+  if (roleId === '1') {
+    return 'admin';
+  }
+
+  if (roleId === '3' && regionCode === 'north') {
+    return 'north';
+  }
+
+  if (roleId === '3' && regionCode === 'south') {
+    return 'south';
+  }
+
+  return 'admin';
+}
 
 function withAllRegions(
   summary: DashboardData['summary'],
@@ -269,10 +330,7 @@ export async function loadDashboardData(options: RequestOptions): Promise<Dashbo
             ? '#dc2626'
             : '#4f46e5',
     })),
-    categoryRevenue: categories.map((item) => ({
-      ...item,
-      color: categoryColors[item.category] ?? '#3525cd',
-    })),
+    categoryRevenue: colorizeCategoryRevenue(categories),
     dropOffRisks: dropOff.map((item) => ({
       course: item.courseTitle,
       region: 'Scoped',
@@ -297,6 +355,14 @@ export async function loadDashboardData(options: RequestOptions): Promise<Dashbo
     students,
     source: 'api',
   };
+}
+
+export async function loadRevenueByCategory(
+  options: RequestOptions,
+): Promise<CategoryRevenue[]> {
+  const payload = await fetchJson('/analytics/revenue-by-category', options);
+
+  return colorizeCategoryRevenue(unwrapList<CategoryRevenuePayload>(payload));
 }
 
 export async function loadStudents(options: RequestOptions): Promise<StudentsPage> {

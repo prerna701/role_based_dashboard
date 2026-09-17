@@ -684,6 +684,29 @@ button:disabled {
   background: linear-gradient(180deg, #ffffff 0%, #eff4ff 100%);
 }
 
+.widget-filter-row {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-low);
+}
+
+.widget-filter-row div {
+  display: grid;
+  gap: 2px;
+}
+
+.widget-filter-row span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .category-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

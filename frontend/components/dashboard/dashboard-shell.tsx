@@ -15,10 +15,7 @@ import {
   Users,
 } from 'lucide-react';
 import {
-  Bar,
-  BarChart,
   CartesianGrid,
-  Cell,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -32,6 +29,7 @@ import { DataTable } from '@/components/ui/data-table';
 import {
   loadDashboardData,
   loginAsRole,
+  resolveRoleKeyFromLoginPayload,
 } from '@/lib/analytics-api';
 import {
   canAccessRegion,
@@ -42,6 +40,7 @@ import {
 import { EmptyState } from './empty-state';
 import { LoadingState } from './loading-state';
 import { MetricCard } from './metric-card';
+import { RevenueByCategoryWidget } from './revenue-by-category-widget';
 import { Sidebar } from './sidebar';
 import type { DashboardData } from '@/types/analytics';
 import type { RoleKey } from '@/types/dashboard';
@@ -79,8 +78,11 @@ export function DashboardShell() {
   useEffect(() => {
     loginAsRole('admin')
       .then((payload) => {
+        const authenticatedRole = resolveRoleKeyFromLoginPayload(payload);
+        setRoleKey(authenticatedRole);
+        setSelectedRegion(resolveRegionForRole(authenticatedRole, 'all'));
         setToken(payload.token);
-        setAuthMessage('Seeded Admin account connected');
+        setAuthMessage(`JWT role connected: ${roles[authenticatedRole].label}`);
       })
       .catch((error: Error) => {
         setErrorMessage(error.message);
@@ -108,8 +110,11 @@ export function DashboardShell() {
 
     try {
       const payload = await loginAsRole(nextRole);
+      const authenticatedRole = resolveRoleKeyFromLoginPayload(payload);
+      setRoleKey(authenticatedRole);
+      setSelectedRegion((current) => resolveRegionForRole(authenticatedRole, current));
       setToken(payload.token);
-      setAuthMessage(`Seeded ${roles[nextRole].label} account connected`);
+      setAuthMessage(`JWT role connected: ${roles[authenticatedRole].label}`);
       setErrorMessage(null);
     } catch (error) {
       setToken(null);
@@ -279,46 +284,12 @@ export function DashboardShell() {
         </section>
 
         <section className="dashboard-grid">
-          <Card
-            className="wide-card"
-            eyebrow="Primary analytics"
-            title="Total Revenue by Course Category"
-            action={<span className="endpoint-chip">GET /analytics/revenue-by-category</span>}
-          >
-            <div className="chart-stage">
-              <ResponsiveContainer width="100%" height={320}>
-                    <BarChart data={dashboardData.categoryRevenue} margin={{ top: 18, right: 12, left: 0, bottom: 8 }}>
-                  <CartesianGrid stroke="#d3e4fe" strokeDasharray="4 4" vertical={false} />
-                  <XAxis dataKey="category" tickLine={false} axisLine={false} />
-                  <YAxis
-                    tickFormatter={(value) => `Rs ${Number(value) / 1000}k`}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                  <Bar dataKey="revenue" radius={[8, 8, 2, 2]}>
-                        {dashboardData.categoryRevenue.map((entry) => (
-                      <Cell key={entry.category} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="category-strip">
-                  {dashboardData.categoryRevenue.length === 0 ? (
-                    <EmptyState message="No category revenue data is available." />
-                  ) : dashboardData.categoryRevenue.map((item) => (
-                <article key={item.category} className="mini-card">
-                  <span style={{ background: item.color }} />
-                  <strong>{item.category}</strong>
-                  <b>{formatCurrency(item.revenue)}</b>
-                  <small>
-                    {item.enrollments} enrollments - {item.share}% share
-                  </small>
-                </article>
-              ))}
-            </div>
-          </Card>
+          <RevenueByCategoryWidget
+            initialData={dashboardData.categoryRevenue}
+            initialRegion={scopedRegion}
+            roleKey={roleKey}
+            token={token}
+          />
 
           <Card title="Enrollment Completion Status" eyebrow="Lifecycle health">
             <div className="status-layout">

@@ -92,6 +92,12 @@ GET /api/v1/analytics/revenue-by-category?region=North
 Authorization: Bearer <token>
 ```
 
+The dashboard renders this through a single component,
+`RevenueByCategoryWidget`. Admin users can use the widget's region dropdown for
+all regions or any individual region. Regional managers see the same widget and
+same endpoint, but the dropdown is limited to their JWT-scoped region, and the
+backend still rejects any direct request for another region with `403`.
+
 Response:
 
 ```json
