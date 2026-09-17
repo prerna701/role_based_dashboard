@@ -707,6 +707,21 @@ button:disabled {
   font-weight: 700;
 }
 
+.widget-total-revenue {
+  min-width: 180px;
+  padding: 8px 10px;
+  border: 1px solid rgba(211, 228, 254, 0.9);
+  border-radius: 8px;
+  background: var(--surface);
+  text-align: right;
+}
+
+.widget-total-revenue strong {
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1.1;
+}
+
 .category-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -986,6 +1001,23 @@ button:disabled {
 .student-course-table td {
   padding-top: 11px;
   padding-bottom: 11px;
+}
+
+.student-snapshot-table {
+  min-width: 980px;
+}
+
+.student-table-name {
+  display: grid;
+  gap: 3px;
+}
+
+.student-table-name small {
+  color: var(--muted);
+}
+
+.table-completion-summary {
+  justify-content: flex-start;
 }
 
 .category-badge {

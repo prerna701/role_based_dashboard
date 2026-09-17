@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
+  ArrowRight,
   BookOpen,
   Download,
-  ArrowRight,
   GraduationCap,
   Lock,
   RefreshCw,
@@ -44,6 +44,25 @@ import { RevenueByCategoryWidget } from './revenue-by-category-widget';
 import { Sidebar } from './sidebar';
 import type { DashboardData } from '@/types/analytics';
 import type { RoleKey } from '@/types/dashboard';
+
+function formatDisplayDate(value?: string): string {
+  if (!value) {
+    return 'Not started';
+  }
+
+  return new Intl.DateTimeFormat('en', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(value));
+}
+
+function getCourseEndDate(enrolledOn: string, durationWeeks: number): Date {
+  const endDate = new Date(enrolledOn);
+  endDate.setDate(endDate.getDate() + durationWeeks * 7);
+
+  return endDate;
+}
 
 export function DashboardShell() {
   const [roleKey, setRoleKey] = useState<RoleKey>('admin');
@@ -380,27 +399,65 @@ export function DashboardShell() {
           title="Student Enrollment Snapshot"
           eyebrow="Live backend data"
         >
-          <div className="student-preview-list">
-            {dashboardData.students.length === 0 ? (
-              <EmptyState message="No students were returned for this scope." />
-            ) : (
-              dashboardData.students.map((student) => (
-                <article key={student.studentId} className="student-preview-row">
-                  <div className="student-preview-identity">
-                    <strong>{student.name}</strong>
-                    <span>
-                      {student.studentId} | {student.courses.length} courses | Joined {student.joinedOn}
-                    </span>
-                  </div>
-                  <div className="completion-summary">
-                    <span className="status-completed">{student.completion.completed} done</span>
-                    <span className="status-progress">{student.completion.inProgress} active</span>
-                    <span className="status-dropped">{student.completion.dropped} dropped</span>
-                  </div>
-                </article>
-              ))
-            )}
-          </div>
+          {dashboardData.students.length === 0 ? (
+            <EmptyState message="No students were returned for this scope." />
+          ) : (
+            <DataTable className="student-snapshot-table" minWidth={980}>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Courses Enrolled</th>
+                  <th>Starting Date</th>
+                  <th>Ending Date</th>
+                  <th>Completion</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dashboardData.students.slice(0, 10).map((student) => {
+                  const sortedCourses = [...student.courses].sort(
+                    (left, right) =>
+                      new Date(left.enrolledOn).getTime() -
+                      new Date(right.enrolledOn).getTime(),
+                  );
+                  const firstCourse = sortedCourses[0];
+                  const finalCourse = sortedCourses.reduce<Date | null>(
+                    (latestDate, course) => {
+                      const endDate = getCourseEndDate(
+                        course.enrolledOn,
+                        course.durationWeeks,
+                      );
+
+                      return !latestDate || endDate > latestDate
+                        ? endDate
+                        : latestDate;
+                    },
+                    null,
+                  );
+
+                  return (
+                    <tr key={student.studentId}>
+                      <td>
+                        <div className="student-table-name">
+                          <strong>{student.name}</strong>
+                          <small>{student.studentId}</small>
+                        </div>
+                      </td>
+                      <td>{student.courses.length}</td>
+                      <td>{formatDisplayDate(firstCourse?.enrolledOn)}</td>
+                      <td>{finalCourse ? formatDisplayDate(finalCourse.toISOString()) : 'Not available'}</td>
+                      <td>
+                        <div className="completion-summary table-completion-summary">
+                          <span className="status-completed">{student.completion.completed} done</span>
+                          <span className="status-progress">{student.completion.inProgress} active</span>
+                          <span className="status-dropped">{student.completion.dropped} dropped</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </DataTable>
+          )}
           <div className="card-footer-action">
             <Button href="/students" variant="secondary">
               Read more <ArrowRight size={15} />

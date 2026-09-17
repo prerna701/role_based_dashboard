@@ -304,7 +304,7 @@ export async function loadDashboardData(options: RequestOptions): Promise<Dashbo
       fetchJson('/analytics/drop-off-by-course', { ...options, page: 1, limit: 5 }),
       fetchJson('/analytics/monthly-revenue', { ...options, page: 1, limit: 12 }),
       fetchJson('/analytics/popular-courses', { ...options, page: 1, limit: 10 }),
-      fetchJson('/analytics/students', { ...options, page: 1, limit: 5 }),
+      fetchJson('/analytics/students', { ...options, page: 1, limit: 10 }),
     ]);
 
   const overview = unwrapData<OverviewPayload>(overviewPayload);

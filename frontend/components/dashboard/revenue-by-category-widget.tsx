@@ -53,6 +53,10 @@ export function RevenueByCategoryWidget({
 
   const regionOptions = useMemo(() => roles[roleKey].allowedRegions, [roleKey]);
   const scopedRegion = resolveRegionForRole(roleKey, selectedRegion);
+  const totalRevenue = useMemo(
+    () => categoryRevenue.reduce((sum, item) => sum + item.revenue, 0),
+    [categoryRevenue],
+  );
 
   useEffect(() => {
     setSelectedRegion((currentRegion) =>
@@ -92,6 +96,10 @@ export function RevenueByCategoryWidget({
           <span>
             One widget and one API endpoint, scoped by the logged-in JWT role.
           </span>
+        </div>
+        <div className="widget-total-revenue" aria-label="Total category revenue">
+          <span>Total Revenue</span>
+          <strong>{formatCurrency(totalRevenue)}</strong>
         </div>
         <label className="role-select">
           <span>Region</span>
