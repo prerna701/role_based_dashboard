@@ -35,7 +35,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       args:
-        NODE_IMAGE: ${NODE_IMAGE:?NODE_IMAGE is required}
+        NODE_IMAGE: ${NODE_IMAGE:-node:22-bookworm-slim}
         NODE_ENV: ${IMAGE_NODE_ENV:?IMAGE_NODE_ENV is required}
         APP_PORT: ${BACKEND_CONTAINER_PORT:?BACKEND_CONTAINER_PORT is required}
         NODE_UID: ${NODE_UID:?NODE_UID is required}
@@ -46,7 +46,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: ["node", "./node_modules/typeorm/cli.js", "--dataSource=dist/database/data-source.js", "migration:run"]
+    command: ["npm", "run", "migration:run:prod"]
     restart: ${ONE_SHOT_RESTART_POLICY:?ONE_SHOT_RESTART_POLICY is required}
 
   seed:
@@ -54,7 +54,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       args:
-        NODE_IMAGE: ${NODE_IMAGE:?NODE_IMAGE is required}
+        NODE_IMAGE: ${NODE_IMAGE:-node:22-bookworm-slim}
         NODE_ENV: ${IMAGE_NODE_ENV:?IMAGE_NODE_ENV is required}
         APP_PORT: ${BACKEND_CONTAINER_PORT:?BACKEND_CONTAINER_PORT is required}
         NODE_UID: ${NODE_UID:?NODE_UID is required}
@@ -65,7 +65,7 @@ services:
     depends_on:
       migration:
         condition: service_completed_successfully
-    command: ["node", "dist/database/seeds/relational/assessment/run-assessment-seed.js"]
+    command: ["npm", "run", "seed:assessment:prod"]
     restart: ${ONE_SHOT_RESTART_POLICY:?ONE_SHOT_RESTART_POLICY is required}
 
   backend:
@@ -73,7 +73,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       args:
-        NODE_IMAGE: ${NODE_IMAGE:?NODE_IMAGE is required}
+        NODE_IMAGE: ${NODE_IMAGE:-node:22-bookworm-slim}
         NODE_ENV: ${IMAGE_NODE_ENV:?IMAGE_NODE_ENV is required}
         APP_PORT: ${BACKEND_CONTAINER_PORT:?BACKEND_CONTAINER_PORT is required}
         NODE_UID: ${NODE_UID:?NODE_UID is required}
@@ -98,7 +98,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NODE_IMAGE: ${NODE_IMAGE:?NODE_IMAGE is required}
+        NODE_IMAGE: ${NODE_IMAGE:-node:22-bookworm-slim}
         NODE_ENV: ${IMAGE_NODE_ENV:?IMAGE_NODE_ENV is required}
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required}
         FRONTEND_PORT: ${FRONTEND_CONTAINER_PORT:?FRONTEND_CONTAINER_PORT is required}

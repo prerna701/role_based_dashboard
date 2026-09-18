@@ -1,8 +1,10 @@
-ARG NODE_IMAGE
+ARG NODE_IMAGE=node:22-bookworm-slim
 FROM ${NODE_IMAGE} AS dependencies
 WORKDIR /app
-COPY package.json ./
-RUN npm install --ignore-scripts --no-audit --no-fund
+ARG NPM_VERSION=11.12.1
+COPY package.json package-lock.json ./
+RUN npm install --global npm@${NPM_VERSION} --no-audit --no-fund \
+  && npm ci --ignore-scripts --no-audit --no-fund
 
 FROM dependencies AS builder
 COPY . .
@@ -10,7 +12,7 @@ ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm run build
 
-ARG NODE_IMAGE
+ARG NODE_IMAGE=node:22-bookworm-slim
 FROM ${NODE_IMAGE} AS runner
 WORKDIR /app
 ARG NODE_ENV
@@ -21,14 +23,14 @@ ARG NODE_USER
 ARG NODE_GROUP
 ENV NODE_ENV=${NODE_ENV}
 ENV PORT=${FRONTEND_PORT}
+ENV HOSTNAME=0.0.0.0
 
 RUN addgroup --system --gid ${NODE_GID} ${NODE_GROUP} \
   && adduser --system --uid ${NODE_UID} --ingroup ${NODE_GROUP} ${NODE_USER}
 
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/package.json ./package.json
-COPY --from=dependencies /app/node_modules ./node_modules
+COPY --from=builder --chown=${NODE_USER}:${NODE_GROUP} /app/.next/standalone ./
+COPY --from=builder --chown=${NODE_USER}:${NODE_GROUP} /app/.next/static ./.next/static
 
 USER ${NODE_USER}
 EXPOSE ${FRONTEND_PORT}
-CMD ["npm", "run", "start", "--", "--hostname", "0.0.0.0"]
+CMD ["node", "server.js"]
