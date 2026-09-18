@@ -6,8 +6,8 @@ A full-stack role-based dashboard application built as part of the Neolytix Juni
 
 ## Live URL
 
-- Frontend: `http://80.225.244.53:3000`
-- Backend API: `http://80.225.244.53:3001`
+- Frontend: `http://155.248.251.252:3000`
+- Backend API: `http://155.248.251.252:3001`
 
 ## Quick Start (Docker)
 

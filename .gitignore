@@ -36,7 +36,8 @@ lerna-debug.log*
 
 .data
 /files
-.env
+/.env
+/backend/.env
 /ormconfig.json
 .codegpt
 
